@@ -90,6 +90,6 @@ Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, 
 		}
 		currentTime = Tools::get_time();
 	}
-	//cerr << "bot 0 trials: " << trials << "\n";
+	cerr << "bot 0 trials: " << trials << "\n";
 	return bestMove;
 };

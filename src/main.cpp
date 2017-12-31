@@ -48,7 +48,31 @@ void test2(int i) {
 
 void test()
 {
-	test2(223);
+	int width = 18;
+	int height = 16;
+	RandomStrategy randomStrategy = RandomStrategy();
+
+	for (int i = 0; i < 500; i++) {
+		Board a = Board(width, height);
+		a.initiateBoardPositions();
+		Board *aCopy = a.getCopy();
+
+		Player playerID = P0;
+		Player enemyID = P1;
+		if (i % 2 == 1) {
+			playerID = P1;
+			enemyID = P0;
+		}
+		Move m = randomStrategy.getMove(a, playerID, enemyID, 0, 0);
+
+		Board *normalMove = a.makeMove(m, playerID);
+		Board *nextRoundBoard = a.makeMove(Move(), playerID);
+		Board *appliedMove = a.applyMove(m, playerID, *nextRoundBoard);
+
+		assert(*normalMove == *appliedMove);
+		assert(a == *aCopy);
+		cout << "passed test " << i << "\n";
+	}
 }
 
 void play() {

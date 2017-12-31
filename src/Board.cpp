@@ -36,7 +36,29 @@ inline char Board::getNextCellStatus(int cellX, int cellY) {
 	else return '.';
 }
 
-// runs the next round of the GOLAD simulation, updating the board as well
+inline void Board::updateCellStatus(int x, int y, Board &lastRoundBoard) {
+	char currentStatus = board[x][y];
+	if (currentStatus == '0') P0CellCount--;
+	else if (currentStatus == '1') P1CellCount--;
+
+	char updatedStatus = lastRoundBoard.getNextCellStatus(x, y);
+	board[x][y] = updatedStatus;
+	if (updatedStatus == '0') P0CellCount++;
+	else if (updatedStatus == '1') P1CellCount++;
+}
+
+inline void Board::updateRegionStatus(int cellX, int cellY, Board &lastRoundBoard) {
+	for (int dx = -1; dx <= 1; dx++) {
+		for (int dy = -1; dy <= 1; dy++) {
+			int x = cellX + dx;
+			int y = cellY + dy;
+			if (x < 0 || x >= width || y < 0 || y >= height) continue;
+			updateCellStatus(x, y, lastRoundBoard);
+		}
+	}
+}
+
+// runs the next round of the Game of Life simulation, updating the board as well
 // as the cell counts for each player
 inline void Board::nextRound() {
 	char **newBoard = new char *[width];
@@ -70,6 +92,17 @@ Board::Board(int width, int height)
 
 Board::~Board() {
 	deleteBoard();
+}
+
+bool Board::operator== (Board &other) {
+	if (width != other.width || height != other.height) return false;
+	if (P0CellCount != other.P0CellCount || P1CellCount != other.P1CellCount) return false;
+	for (int x = 0; x < width; x++) {
+		for (int y = 0; y < height; y++) {
+			if (board[x][y] != other.board[x][y]) return false;
+		}
+	}
+	return true;
 }
 
 void Board::UpdateBoard(stringstream &stream) {
@@ -111,6 +144,15 @@ void Board::initiateBoardPositions(int aliveCells) {
 	P0CellCount = P1CellCount = aliveCells;
 }
 
+Board* Board::getCopy() {
+	Board *result = new Board(width, height);
+	copyBoard(result->board);
+	result->P0CellCount = P0CellCount;
+	result->P1CellCount = P1CellCount;
+	assert(*result == *this);
+	return result;
+}
+
 void Board::setPlayerCellCount(Player playerID, int cellCount) {
 	if (playerID == P0) {
 		P0CellCount = cellCount;
@@ -148,18 +190,20 @@ inline void Board::deleteBoard() {
 	delete[] board;
 }
 
-Board* Board::makeMove(Move move, Player playerID) {
-	Board *result = new Board(width, height);
-	char **copiedBoard = result->board;
+inline void Board::copyBoard(char **blankBoard) {
 	for (int x = 0; x < width; x++) {
-		copy(board[x], board[x] + height, copiedBoard[x]);
+		copy(board[x], board[x] + height, blankBoard[x]);
 	}
-
-	 result->makeMoveOnBoard(move, playerID);
-	 return result;
 }
 
-void Board::makeMoveOnBoard(Move move, Player playerID) {
+Board* Board::makeMove(Move &move, Player playerID) {
+	Board *result = new Board(width, height);
+	copyBoard(result->board);
+	result->makeMoveOnBoard(move, playerID);
+	return result;
+}
+
+void Board::makeMoveOnBoard(Move &move, Player playerID) {
 	if (move.MoveType == KILL) {
 		assert(board[move.target.x][move.target.y] != '.');
 		board[move.target.x][move.target.y] = '.';
@@ -177,6 +221,49 @@ void Board::makeMoveOnBoard(Move move, Player playerID) {
 
 	// this call is necessary to update the cell counts, as well as running the simulation
 	nextRound();
+}
+
+// applies a move to a board as if the move was made on the last round of play.
+// the following expressions are equivalent for any given Board originalBoard,
+// Move move, and Player playerID:
+// 1. originalBoard.makeMove(move, playerID);
+// 2. originalBoard.applyMove(move, playerID, originalBoard.makeMove(Move(), playerID));
+// Note that originalBoard.makeMove(Move(), playerID) is making the pass move on the original
+// board, which is equivalent to just computing the next round of the Game Of Life simulation.
+// this should be used to minimize recomputation when applying different moves
+// to the same board.
+Board* Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard) {
+	Board *result = nextRoundBoard.getCopy();
+
+	if (move.MoveType == KILL) {
+		char targetChar = board[move.target.x][move.target.y];
+		assert(targetChar != '.');
+		board[move.target.x][move.target.y] = '.';
+
+		result->updateRegionStatus(move.target.x, move.target.y, *this);
+
+		board[move.target.x][move.target.y] = targetChar;
+	}
+	else if (move.MoveType == BIRTH) {
+		char playerChar = to_string(playerID).at(0);
+		assert(board[move.sacrifice1.x][move.sacrifice1.y] == board[move.sacrifice2.x][move.sacrifice2.y]);
+		assert(board[move.sacrifice2.x][move.sacrifice2.y] == playerChar);
+		assert(board[move.target.x][move.target.y] == '.');
+		assert(move.sacrifice1.x != move.sacrifice2.x || move.sacrifice1.y != move.sacrifice2.y);
+		board[move.sacrifice1.x][move.sacrifice1.y] = '.';
+		board[move.sacrifice2.x][move.sacrifice2.y] = '.';
+		board[move.target.x][move.target.y] = playerChar;
+
+		result->updateRegionStatus(move.sacrifice1.x, move.sacrifice1.y, *this);
+		result->updateRegionStatus(move.sacrifice2.x, move.sacrifice2.y, *this);
+		result->updateRegionStatus(move.target.x, move.target.y, *this);
+
+		board[move.sacrifice1.x][move.sacrifice1.y] = playerChar;
+		board[move.sacrifice2.x][move.sacrifice2.y] = playerChar;
+		board[move.target.x][move.target.y] = '.';
+	}
+
+	return result;
 }
 
 string Board::toString() {
