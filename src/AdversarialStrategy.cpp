@@ -1,24 +1,22 @@
 
-#include "RandSearchStrategy.h"
+#include "AdversarialStrategy.h"
 
 using namespace std;
 
-template <class T>
-inline T RandSearchStrategy::PopRandomElementFromVector(vector<T> &input) {
+template <class T> inline T AdversarialStrategy::PopRandomElementFromVector(vector<T> &input) {
 	assert(input.size() > 0);
 	T result = GetRandomElementFromVector(input);
 	input.pop_back();
 	return result;
 }
 
-template <class T>
-inline T RandSearchStrategy::GetRandomElementFromVector(vector<T> &input) {
+template <class T> inline T AdversarialStrategy::GetRandomElementFromVector(vector<T> &input) {
 	assert(input.size() > 0);
 	random_shuffle(input.begin(), input.end());
 	return input.back();
 }
 
-vector<MoveType> RandSearchStrategy::GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID) {
+vector<MoveType> AdversarialStrategy::GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID) {
 	vector<MoveType> availableMoves;
 
 	if (board.getPlayerCellCount(playerID) + board.getPlayerCellCount(enemyID) > 0) {
@@ -32,8 +30,8 @@ vector<MoveType> RandSearchStrategy::GetAvailableMoveTypes(Board &board, Player 
 	return availableMoves;
 }
 
-Move RandSearchStrategy::getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes, 
-									   vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells) {
+Move AdversarialStrategy::getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes,
+	vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells) {
 	int moveType = GetRandomElementFromVector(availableMoveTypes);
 
 	if (moveType == BIRTH) {
@@ -58,15 +56,51 @@ Move RandSearchStrategy::getRandomMove(Board &board, Player playerID, Player ene
 	}
 }
 
-inline int RandSearchStrategy::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard) {
+inline int AdversarialStrategy::getSimpleMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard) {
 	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
 	int moveScore = trialBoard.getPlayerCellCount(playerID) - trialBoard.getPlayerCellCount(enemyID);
 	return moveScore;
 }
 
-RandSearchStrategy::RandSearchStrategy() {}
+int AdversarialStrategy::getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials) {
+	Board trialBoard(board.getWidth(), board.getHeight());
+	Board *nextRoundBoard = board.getNextRoundBoard();
 
-Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
+	Move passMove = Move();
+	int passMoveScore = getSimpleMoveScore(board, playerID, enemyID, passMove, *nextRoundBoard, trialBoard);
+
+	int bestScore = passMoveScore;
+
+	vector<Coordinate> deadCells = board.GetCells('.');
+	vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
+	vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
+	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, playerID, enemyID);
+
+	for (int i = 0; i < trials; i++) {
+		Move testMove = getRandomMove(board, playerID, enemyID, availableMoveTypes, deadCells, myCells, enemyCells);
+		int moveScore = getSimpleMoveScore(board, playerID, enemyID, testMove, *nextRoundBoard, trialBoard);
+		if (moveScore > bestScore) {
+			bestScore = moveScore;
+		}
+	}
+
+	delete nextRoundBoard;
+	return bestScore;
+};
+
+inline int AdversarialStrategy::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard) {
+	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
+	if (trialBoard.getPlayerCellCount(playerID) == 0) return INT_MIN;
+	else if (trialBoard.getPlayerCellCount(enemyID) == 0) return INT_MAX;
+	int moveScore = -getBestMoveScore(trialBoard, enemyID, playerID, adversarialTrials);
+	return moveScore;
+}
+
+AdversarialStrategy::AdversarialStrategy(int adversarialTrials) {
+	this->adversarialTrials = adversarialTrials;
+}
+
+Move AdversarialStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
 	long startTime = Tools::get_time();
 
 	Board trialBoard(board.getWidth(), board.getHeight());
@@ -77,7 +111,7 @@ Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, 
 
 	Move bestMove = passMove;
 	int bestScore = passMoveScore;
-	
+
 	vector<Coordinate> deadCells = board.GetCells('.');
 	vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
 	vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
@@ -93,7 +127,7 @@ Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, 
 			bestMove = testMove;
 		}
 	}
-	//cerr << "RandSearchStrategy  trials: " << trials << "\n";
+	//cerr << "AdversarialStrategy trials: " << trials << "\n";
 	delete nextRoundBoard;
 	return bestMove;
 };

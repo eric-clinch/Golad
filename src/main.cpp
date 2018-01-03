@@ -18,6 +18,7 @@
 #include "Strategy.h"
 #include "RandomStrategy.h"
 #include "RandSearchStrategy.h"
+#include "AdversarialStrategy.h"
 #include "BirthRandSearch.h"
 #include "Board.h"
 
@@ -41,11 +42,6 @@ void printArray(int **a, int rows, int cols) {
 	cout << "\n";
 }
 
-void test2(int i) {
-	int j = 2 * i + 3;
-	cout << j << "\n";
-}
-
 void test()
 {
 	int width = 18;
@@ -66,18 +62,19 @@ void test()
 		Move m = randomStrategy.getMove(a, playerID, enemyID, 0, 0);
 
 		Board *normalMove = a.makeMove(m, playerID);
-		Board *nextRoundBoard = a.makeMove(Move(), playerID);
-		Board *appliedMove = a.applyMove(m, playerID, *nextRoundBoard);
+		Board *nextRoundBoard = a.getNextRoundBoard();
+		Board appliedMove = Board(width, height);
+		a.applyMove(m, playerID, *nextRoundBoard, appliedMove);
 
-		assert(*normalMove == *appliedMove);
+		assert(*normalMove == appliedMove);
 		assert(a == *aCopy);
 		cout << "passed test " << i << "\n";
 	}
 }
 
 void play() {
-	RandSearchStrategy randSearchStrategy = RandSearchStrategy();
-	Bot myBot = Bot(&randSearchStrategy);
+	AdversarialStrategy adversarialStrategy = AdversarialStrategy(10);
+	Bot myBot = Bot(&adversarialStrategy);
 	Parser parser = Parser(myBot);
 	parser.Parse();
 }
@@ -92,7 +89,9 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 
 	int bot0Time = 10000;
 	int bot1Time = 10000;
-	int timePerMove = 100;
+	int timePerMove = 700;
+	bot0.SetTimePerMove(timePerMove);
+	bot1.SetTimePerMove(timePerMove);
 
 	for (int round = 0; round < 100 && bot0Time >= 0 && bot1Time >= 0; round++) {
 		if (verbose) cout << board.toString() << "\n";
@@ -149,9 +148,9 @@ void playTournament(Bot bot0, Bot bot1, int rounds = 100) {
 	int bot0Wins = 0;
 	int bot1Wins = 0;
 
-	for (int i = 0; i < rounds; i++) {
+	for (int currentRound = 1; currentRound <= rounds; currentRound++) {
 		int matchResult;
-		if (i % 2 == 0) {
+		if (currentRound % 2 == 1) {
 			matchResult = playMatch(bot0, bot1);
 		}
 		else {
@@ -161,20 +160,24 @@ void playTournament(Bot bot0, Bot bot1, int rounds = 100) {
 		if (matchResult == 0) bot0Wins++;
 		else if (matchResult == 1) bot1Wins++;
 		cout << "match winner: " << matchResult << "\n";
+		if (currentRound % 10 == 0) {
+			int ties = currentRound - bot0Wins - bot1Wins;
+			cout << "bot 0 wins: " << bot0Wins << "\nbot 1 wins: " << bot1Wins << "\nties: " << ties << "\n";
+		}
 	}
 
 	int ties = rounds - bot0Wins - bot1Wins;
-	cout << "bot 0 wins: " << bot0Wins << " bot 1 wins: " << bot1Wins << " ties: " << ties << "\n";
+	cout << "bot 0 wins: " << bot0Wins << "\nbot 1 wins: " << bot1Wins << "\nties: " << ties << "\n";
 }
 
 void playTest() {
-	RandSearchStrategy bot0Strategy = RandSearchStrategy();
+	AdversarialStrategy bot0Strategy = AdversarialStrategy(1);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	RandSearchStrategy bot1Strategy = RandSearchStrategy();
+	AdversarialStrategy bot1Strategy = AdversarialStrategy(3);
 	Bot bot1 = Bot(&bot1Strategy);
 
-	playTournament(bot0, bot1);
+	playTournament(bot0, bot1, 100);
 	//playMatch(bot0, bot1, true);
 }
 
@@ -182,7 +185,7 @@ int main()
 {
 	// Initialize random number generator
 	srand(time(NULL));
-
+	  
 	playTest();
 	//test();
 	//play();

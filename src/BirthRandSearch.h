@@ -20,18 +20,27 @@
 class BirthRandSearch : public Strategy
 {
 private:
-	template <class T>
-	inline T PopRandomElementFromVector(vector<T> &input);
+	int adversarialTrials;
 
-	template <class T>
-	inline T GetRandomElementFromVector(vector<T> &input);
-	int getMoveScore(Board &board, Player playerID, Player enemyID, Move &move);
-	Move getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells);
-	Move getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, vector<Coordinate> &myCells, int time);
+	struct MoveAndScore;
+	template <class T> inline T PopRandomElementFromVector(vector<T> &input);
+	template <class T> inline T GetRandomElementFromVector(vector<T> &input);
+
+	Move getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes,
+		vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
+	vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
+
+	virtual int getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials);
+	virtual inline int getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard);
+	virtual inline int getSimpleMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard);
+
+	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, Board &nextRoundBoard);
+	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, vector<Coordinate> &myCells, 
+								  Board &nextRoundBoard, int time);
 
 public:
-	BirthRandSearch();
-	Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
+	BirthRandSearch(int adversarialTrials);
+	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
 };
 
 #endif

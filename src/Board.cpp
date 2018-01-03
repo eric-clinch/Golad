@@ -80,6 +80,22 @@ inline void Board::nextRound() {
 	board = newBoard;
 }
 
+Board* Board::getNextRoundBoard() {
+	Board *result = new Board(width, height);
+
+	result->P0CellCount = result->P1CellCount = 0;
+	for (int x = 0; x < width; x++) {
+		for (int y = 0; y < height; y++) {
+			char newStatus = getNextCellStatus(x, y);
+			if (newStatus == '0') result->P0CellCount++;
+			else if (newStatus == '1') result->P1CellCount++;
+			result->board[x][y] = newStatus;
+		}
+	}
+
+	return result;
+}
+
 Board::Board(int width, int height)
 {
 	this->width = width;
@@ -171,6 +187,14 @@ int Board::getPlayerCellCount(Player playerID) {
 	}
 }
 
+int Board::getWidth() {
+	return width;
+}
+
+int Board::getHeight() {
+	return height;
+}
+
 vector<Coordinate> Board::GetCells(char type) {
 	vector<Coordinate> selectedCells;
 	for (int x = 0; x < width; ++x) {
@@ -194,6 +218,12 @@ inline void Board::copyBoard(char **blankBoard) {
 	for (int x = 0; x < width; x++) {
 		copy(board[x], board[x] + height, blankBoard[x]);
 	}
+}
+
+inline void Board::copyBoard(Board &blankBoard) {
+	copyBoard(blankBoard.board);
+	blankBoard.P0CellCount = P0CellCount;
+	blankBoard.P1CellCount = P1CellCount;
 }
 
 Board* Board::makeMove(Move &move, Player playerID) {
@@ -223,24 +253,24 @@ void Board::makeMoveOnBoard(Move &move, Player playerID) {
 	nextRound();
 }
 
-// applies a move to a board as if the move was made on the last round of play.
-// the following expressions are equivalent for any given Board originalBoard,
-// Move move, and Player playerID:
-// 1. originalBoard.makeMove(move, playerID);
-// 2. originalBoard.applyMove(move, playerID, originalBoard.makeMove(Move(), playerID));
+// applies a move to a board as if the move was made on the last round of play, and copies the result
+// into the given Board result so that following expression would be equal to the Board result for any
+// given Move move, and Player playerID:
+//     originalBoard.makeMove(move, playerID);
 // Note that originalBoard.makeMove(Move(), playerID) is making the pass move on the original
-// board, which is equivalent to just computing the next round of the Game Of Life simulation.
+// board, which is equivalent to just computing the next round of the Game Of Life simulation. So it
+// should be used as the nextRoundBoard parameter.
 // this should be used to minimize recomputation when applying different moves
 // to the same board.
-Board* Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard) {
-	Board *result = nextRoundBoard.getCopy();
+void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board &result) {
+	nextRoundBoard.copyBoard(result);
 
 	if (move.MoveType == KILL) {
 		char targetChar = board[move.target.x][move.target.y];
 		assert(targetChar != '.');
 		board[move.target.x][move.target.y] = '.';
 
-		result->updateRegionStatus(move.target.x, move.target.y, *this);
+		result.updateRegionStatus(move.target.x, move.target.y, *this);
 
 		board[move.target.x][move.target.y] = targetChar;
 	}
@@ -254,16 +284,14 @@ Board* Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard) {
 		board[move.sacrifice2.x][move.sacrifice2.y] = '.';
 		board[move.target.x][move.target.y] = playerChar;
 
-		result->updateRegionStatus(move.sacrifice1.x, move.sacrifice1.y, *this);
-		result->updateRegionStatus(move.sacrifice2.x, move.sacrifice2.y, *this);
-		result->updateRegionStatus(move.target.x, move.target.y, *this);
+		result.updateRegionStatus(move.sacrifice1.x, move.sacrifice1.y, *this);
+		result.updateRegionStatus(move.sacrifice2.x, move.sacrifice2.y, *this);
+		result.updateRegionStatus(move.target.x, move.target.y, *this);
 
 		board[move.sacrifice1.x][move.sacrifice1.y] = playerChar;
 		board[move.sacrifice2.x][move.sacrifice2.y] = playerChar;
 		board[move.target.x][move.target.y] = '.';
 	}
-
-	return result;
 }
 
 string Board::toString() {

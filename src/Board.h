@@ -33,6 +33,7 @@ private:
 
 	virtual inline void deleteBoard();
 	virtual inline void copyBoard(char **blankBoard);
+	virtual inline void copyBoard(Board &blankBoard);
 
 public:
 	Board(int width, int height);
@@ -45,11 +46,14 @@ public:
 
 	virtual void setPlayerCellCount(Player playerID, int count);
 	virtual int getPlayerCellCount(Player playerID);
-
+	virtual int getWidth();
+	virtual int getHeight();
+	
 	virtual inline void nextRound();
+	virtual Board *getNextRoundBoard();
 	virtual Board *makeMove(Move &move, Player playerID);
 	virtual void makeMoveOnBoard(Move &move, Player playerID);
-	virtual Board *applyMove(Move &move, Player playerID, Board &nextRoundBoard);
+	virtual void applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board &result);
 	virtual string toString();
 
 	virtual vector<Coordinate> GetCells(char type);

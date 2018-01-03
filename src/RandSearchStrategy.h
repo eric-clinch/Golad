@@ -29,6 +29,7 @@ private:
 	Move getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes, 
 					   vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
+	virtual inline int getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard);
 
 public:
 	RandSearchStrategy();
