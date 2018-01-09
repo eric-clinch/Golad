@@ -20,6 +20,7 @@
 #include "RandSearchStrategy.h"
 #include "AdversarialStrategy.h"
 #include "BirthRandSearch.h"
+#include "BirthRandSearch2.h"
 #include "Board.h"
 
 using namespace std;
@@ -42,39 +43,14 @@ void printArray(int **a, int rows, int cols) {
 	cout << "\n";
 }
 
-void test()
-{
-	int width = 18;
-	int height = 16;
-	RandomStrategy randomStrategy = RandomStrategy();
-
-	for (int i = 0; i < 500; i++) {
-		Board a = Board(width, height);
-		a.initiateBoardPositions();
-		Board *aCopy = a.getCopy();
-
-		Player playerID = P0;
-		Player enemyID = P1;
-		if (i % 2 == 1) {
-			playerID = P1;
-			enemyID = P0;
-		}
-		Move m = randomStrategy.getMove(a, playerID, enemyID, 0, 0);
-
-		Board *normalMove = a.makeMove(m, playerID);
-		Board *nextRoundBoard = a.getNextRoundBoard();
-		Board appliedMove = Board(width, height);
-		a.applyMove(m, playerID, *nextRoundBoard, appliedMove);
-
-		assert(*normalMove == appliedMove);
-		assert(a == *aCopy);
-		cout << "passed test " << i << "\n";
-	}
+void test() {
+	int testArray[] = { 1,2,3 };
 }
 
 void play() {
-	AdversarialStrategy adversarialStrategy = AdversarialStrategy(10);
-	Bot myBot = Bot(&adversarialStrategy);
+	int bot0AdversarialTrials[] = { 3 };
+	BirthRandSearch strategy = BirthRandSearch(1, bot0AdversarialTrials);
+	Bot myBot = Bot(&strategy);
 	Parser parser = Parser(myBot);
 	parser.Parse();
 }
@@ -100,6 +76,8 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 		if (P0Count == 0 && P1Count == 0) return -1; // tie
 		else if (P0Count == 0) return 1;
 		else if (P1Count == 0) return 0;
+
+		Board *boardCopy = board.getCopy();
 		
 		if (round % 2 == 0) {
 			// player 0's turn
@@ -108,6 +86,7 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 
 			long startTime = get_time();
 			Move move = bot0.GetMove(bot0Time);
+			assert(board == *boardCopy);
 			int dt = get_time() - startTime;
 			bot0Time -= dt;
 
@@ -121,12 +100,15 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 
 			long startTime = get_time();
 			Move move = bot1.GetMove(bot1Time);
+			assert(board == *boardCopy);
 			int dt = get_time() - startTime;
 			bot1Time -= dt;
 
 			if (verbose) cout << "Player 1's move: " << move.toString() << " time to compute: " << dt << "\n";
 			board.makeMoveOnBoard(move, P1);
 		}
+
+		delete boardCopy;
 	}
 
 	if (bot0Time < 0) {
@@ -171,21 +153,22 @@ void playTournament(Bot bot0, Bot bot1, int rounds = 100) {
 }
 
 void playTest() {
-	AdversarialStrategy bot0Strategy = AdversarialStrategy(1);
+	int bot0AdversarialTrials[] = { 3 };
+	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	AdversarialStrategy bot1Strategy = AdversarialStrategy(3);
+	int bot1AdversarialTrials[] = { 3 };
+	BirthRandSearch2 bot1Strategy = BirthRandSearch2(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
-	playTournament(bot0, bot1, 100);
+	playTournament(bot0, bot1, 1000);
 	//playMatch(bot0, bot1, true);
 }
 
-int main()
-{
+int main() {
 	// Initialize random number generator
 	srand(time(NULL));
-	  
+
 	playTest();
 	//test();
 	//play();

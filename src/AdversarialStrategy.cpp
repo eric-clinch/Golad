@@ -90,7 +90,8 @@ int AdversarialStrategy::getBestMoveScore(Board &board, Player playerID, Player 
 
 inline int AdversarialStrategy::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard) {
 	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
-	if (trialBoard.getPlayerCellCount(playerID) == 0) return INT_MIN;
+	// the value could be negated later on, so don't return INT_MIN because negating INT_MIN will cause an overflow error
+	if (trialBoard.getPlayerCellCount(playerID) == 0) return -INT_MAX;
 	else if (trialBoard.getPlayerCellCount(enemyID) == 0) return INT_MAX;
 	int moveScore = -getBestMoveScore(trialBoard, enemyID, playerID, adversarialTrials);
 	return moveScore;
