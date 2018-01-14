@@ -1,9 +1,9 @@
 
-#include "BirthRandSearch.h"
+#include "BirthRandSearch2.h"
 
 using namespace std;
 
-struct BirthRandSearch::MoveAndScore {
+struct BirthRandSearch2::MoveAndScore {
 	Move move;
 	double score;
 
@@ -13,7 +13,7 @@ struct BirthRandSearch::MoveAndScore {
 	}
 };
 
-vector<MoveType> BirthRandSearch::GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID) {
+vector<MoveType> BirthRandSearch2::GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID) {
 	vector<MoveType> availableMoves;
 
 	if (board.getPlayerCellCount(enemyID) > 0) {
@@ -27,7 +27,7 @@ vector<MoveType> BirthRandSearch::GetAvailableMoveTypes(Board &board, Player pla
 	return availableMoves;
 }
 
-Move BirthRandSearch::getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes,
+Move BirthRandSearch2::getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes,
 	vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells) {
 	assert(availableMoveTypes.size() > 0);
 	int moveType = Tools::GetRandomElementFromVector(availableMoveTypes);
@@ -54,7 +54,7 @@ Move BirthRandSearch::getRandomMove(Board &board, Player playerID, Player enemyI
 	}
 }
 
-double BirthRandSearch::getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth) {
+double BirthRandSearch2::getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth) {
 	Board trialBoard(board.getWidth(), board.getHeight());
 	Board *nextRoundBoard = board.getNextRoundBoard();
 
@@ -80,7 +80,7 @@ double BirthRandSearch::getBestMoveScore(Board &board, Player playerID, Player e
 	return bestScore;
 };
 
-inline double BirthRandSearch::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard, int depth) {
+inline double BirthRandSearch2::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard, int depth) {
 	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
 
 	if (depth == maxDepth) {
@@ -93,7 +93,7 @@ inline double BirthRandSearch::getMoveScore(Board &board, Player playerID, Playe
 	}
 }
 
-BirthRandSearch::MoveAndScore BirthRandSearch::getBestKillMove(Board &board, Player playerID, Player enemyID,
+BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, Player playerID, Player enemyID,
 	vector<Coordinate> &enemyCells, Board &nextRoundBoard) {
 
 	Board emptyBoard(board.getWidth(), board.getHeight());
@@ -115,7 +115,7 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestKillMove(Board &board, Pla
 	return MoveAndScore(bestMove, bestMoveScore);
 }
 
-BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells,
+BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells,
 	vector<Coordinate> &myCells, Board &nextRoundBoard, int time) {
 	int startTime = Tools::get_time();
 
@@ -173,11 +173,11 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Pl
 		}
 		currentTime = Tools::get_time();
 	}
-	//cerr << "BirthRandSearch trials: " << trials << "\n";
+	//cerr << "BirthRandSearch2 trials: " << trials << "\n";
 	return MoveAndScore(bestMove, bestScore);
 }
 
-//BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, 
+//BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, 
 //																  vector<Coordinate> &myCells, Board &nextRoundBoard, int time) {
 //	int startTime = Tools::get_time();
 //
@@ -236,7 +236,7 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Pl
 //	return MoveAndScore(bestMove, bestScore);
 //}
 
-//BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Player playerID, Player enemyID,
+//BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID,
 //	vector<Coordinate> &deadCells, vector<Coordinate> &myCells, Board &nextRoundBoard, int time) {
 //	int startTime = Tools::get_time();
 //
@@ -261,16 +261,16 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Pl
 //			bestMove = trialMove;
 //		}
 //	}
-//	//cerr << "BirthRandSearch trials: " << trials << "\n";
+//	//cerr << "BirthRandSearch2 trials: " << trials << "\n";
 //	return MoveAndScore(bestMove, bestScore);
 //}
 
-BirthRandSearch::BirthRandSearch(int maxDepth, int* adversarialTrials) {
+BirthRandSearch2::BirthRandSearch2(int maxDepth, int* adversarialTrials) {
 	this->adversarialTrials = adversarialTrials;
 	this->maxDepth = maxDepth;
 }
 
-Move BirthRandSearch::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
+Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
 	long startTime = Tools::get_time();
 
 	vector<Coordinate> deadCells = board.GetCells('.');

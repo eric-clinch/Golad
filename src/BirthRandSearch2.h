@@ -16,8 +16,8 @@
 #define INT_MIN -100000
 #endif
 
-#ifndef BirthRandSearch_h
-#define BirthRandSearch_h
+#ifndef BirthRandSearch2_h
+#define BirthRandSearch2_h
 
 #include <assert.h>
 #include "Strategy.h"
@@ -25,7 +25,7 @@
 #include "Coordinate.h"
 #include "Tools.h"
 
-class BirthRandSearch : public Strategy
+class BirthRandSearch2 : public Strategy
 {
 private:
 	int maxDepth;
@@ -46,7 +46,7 @@ private:
 		Board &nextRoundBoard, int time);
 
 public:
-	BirthRandSearch(int maxDepth, int* adversarialTrials);
+	BirthRandSearch2(int maxDepth, int* adversarialTrials);
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
 };
 

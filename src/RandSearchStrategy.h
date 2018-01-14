@@ -20,12 +20,6 @@
 
 class RandSearchStrategy : public Strategy {
 private:
-	template <class T>
-	inline T PopRandomElementFromVector(vector<T> &input);
-
-	template <class T>
-	inline T GetRandomElementFromVector(vector<T> &input);
-
 	Move getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes, 
 					   vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);

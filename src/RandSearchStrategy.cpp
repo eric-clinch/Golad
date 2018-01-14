@@ -3,21 +3,6 @@
 
 using namespace std;
 
-template <class T>
-inline T RandSearchStrategy::PopRandomElementFromVector(vector<T> &input) {
-	assert(input.size() > 0);
-	T result = GetRandomElementFromVector(input);
-	input.pop_back();
-	return result;
-}
-
-template <class T>
-inline T RandSearchStrategy::GetRandomElementFromVector(vector<T> &input) {
-	assert(input.size() > 0);
-	random_shuffle(input.begin(), input.end());
-	return input.back();
-}
-
 vector<MoveType> RandSearchStrategy::GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID) {
 	vector<MoveType> availableMoves;
 
@@ -34,7 +19,7 @@ vector<MoveType> RandSearchStrategy::GetAvailableMoveTypes(Board &board, Player 
 
 Move RandSearchStrategy::getRandomMove(Board &board, Player playerID, Player enemyID, vector<MoveType> &availableMoveTypes, 
 									   vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells) {
-	int moveType = GetRandomElementFromVector(availableMoveTypes);
+	int moveType = Tools::GetRandomElementFromVector(availableMoveTypes);
 
 	if (moveType == BIRTH) {
 		if (deadCells.size() == 0 || myCells.size() < 2) {
@@ -42,9 +27,9 @@ Move RandSearchStrategy::getRandomMove(Board &board, Player playerID, Player ene
 		}
 
 		// randomly choose a target dead cell and two of my own cells to sacrifice
-		Coordinate target = GetRandomElementFromVector(deadCells);
-		Coordinate sacrifice1 = PopRandomElementFromVector(myCells); // pop the element so we don't choose the same element twice
-		Coordinate sacrifice2 = GetRandomElementFromVector(myCells);
+		Coordinate target = Tools::GetRandomElementFromVector(deadCells);
+		Coordinate sacrifice1 = Tools::PopRandomElementFromVector(myCells); // pop the element so we don't choose the same element twice
+		Coordinate sacrifice2 = Tools::GetRandomElementFromVector(myCells);
 		myCells.push_back(sacrifice1);
 
 		return Move(target, sacrifice1, sacrifice2);
@@ -52,7 +37,7 @@ Move RandSearchStrategy::getRandomMove(Board &board, Player playerID, Player ene
 
 	else {
 		assert(moveType == KILL);
-		Coordinate target = GetRandomElementFromVector(enemyCells);
+		Coordinate target = Tools::GetRandomElementFromVector(enemyCells);
 
 		return Move(target);
 	}

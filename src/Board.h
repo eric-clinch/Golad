@@ -24,11 +24,16 @@ using namespace std;
 class Board {
 private:
 	int width, height;
+	int __width__, __height__; // the dimensions of the 2D char array used to represent the board internally
 	int P0CellCount, P1CellCount;
 	char **board;
-	virtual inline char getNextCellStatus(int row, int col);
 
-	virtual inline void updateCellStatus(int row, int col, Board &lastRoundBoard);
+	static char *simulationLookupTable;
+
+	virtual int getCellIndex(int cellX, int cellY);
+	virtual inline char getNextCellStatus(int cellX, int cellY);
+
+	virtual inline void updateCellStatus(int row, int col, int cellIndex);
 	virtual inline void updateRegionStatus(int row, int col, Board &lastRoundBoard);
 
 	virtual inline void deleteBoard();
@@ -44,8 +49,8 @@ public:
 	virtual void initiateBoardPositions(int aliveCells = 40);
 	virtual Board *getCopy();
 
-	virtual void setPlayerCellCount(Player playerID, int count);
 	virtual int getPlayerCellCount(Player playerID);
+	virtual void setPlayerCellCount(Player playerID, int cellCount);
 	virtual int getWidth();
 	virtual int getHeight();
 	

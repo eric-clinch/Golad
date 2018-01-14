@@ -22,16 +22,9 @@
 #include "BirthRandSearch.h"
 #include "BirthRandSearch2.h"
 #include "Board.h"
+#include "Tools.h"
 
 using namespace std;
-
-// returns the current time, measured in milliseconds
-long get_time()
-{
-	chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
-		chrono::system_clock::now().time_since_epoch());
-	return ms.count();
-}
 
 void printArray(int **a, int rows, int cols) {
 	for (int i = 0; i < rows; i++) {
@@ -44,7 +37,17 @@ void printArray(int **a, int rows, int cols) {
 }
 
 void test() {
-	int testArray[] = { 1,2,3 };
+	Board b = Board(16, 18);
+	b.initiateBoardPositions();
+	cout << b.toString() << "\n";
+
+	b.nextRound();
+	cout << b.toString() << "\n";
+
+	Board *b2 = b.getNextRoundBoard();
+	cout << b2->toString() << "\n";
+
+	delete b2;
 }
 
 void play() {
@@ -70,7 +73,7 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 	bot1.SetTimePerMove(timePerMove);
 
 	for (int round = 0; round < 100 && bot0Time >= 0 && bot1Time >= 0; round++) {
-		if (verbose) cout << board.toString() << "\n";
+		if (verbose) cout << board.toString();
 		int P0Count = board.getPlayerCellCount(P0);
 		int P1Count = board.getPlayerCellCount(P1);
 		if (P0Count == 0 && P1Count == 0) return -1; // tie
@@ -84,13 +87,13 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 			bot0Time = min(bot0Time + timePerMove, 10000);
 			if (verbose) cout << "bot 0 time: " << bot0Time << "\n";
 
-			long startTime = get_time();
+			long startTime = Tools::get_time();
 			Move move = bot0.GetMove(bot0Time);
 			assert(board == *boardCopy);
-			int dt = get_time() - startTime;
+			int dt = Tools::get_time() - startTime;
 			bot0Time -= dt;
 
-			if (verbose) cout << "Player 0's move: " << move.toString() << " time to compute: " << dt << "\n";
+			if (verbose) cout << "Player 0's move: " << move.toString() << " time to compute: " << dt << "\n\n";
 			board.makeMoveOnBoard(move, P0);
 		}
 		else {
@@ -98,13 +101,13 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 			bot1Time = min(bot1Time + timePerMove, 10000);
 			if (verbose) cout << "bot 1 time: " << bot1Time << "\n";
 
-			long startTime = get_time();
+			long startTime = Tools::get_time();
 			Move move = bot1.GetMove(bot1Time);
 			assert(board == *boardCopy);
-			int dt = get_time() - startTime;
+			int dt = Tools::get_time() - startTime;
 			bot1Time -= dt;
 
-			if (verbose) cout << "Player 1's move: " << move.toString() << " time to compute: " << dt << "\n";
+			if (verbose) cout << "Player 1's move: " << move.toString() << " time to compute: " << dt << "\n\n";
 			board.makeMoveOnBoard(move, P1);
 		}
 
@@ -157,8 +160,8 @@ void playTest() {
 	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	int bot1AdversarialTrials[] = { 3 };
-	BirthRandSearch2 bot1Strategy = BirthRandSearch2(1, bot1AdversarialTrials);
+	int bot1AdversarialTrials[] = { 6 };
+	BirthRandSearch bot1Strategy = BirthRandSearch(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
 	playTournament(bot0, bot1, 1000);
@@ -168,6 +171,8 @@ void playTest() {
 int main() {
 	// Initialize random number generator
 	srand(time(NULL));
+
+	//getLookupTable();
 
 	playTest();
 	//test();
