@@ -8,10 +8,12 @@
 	// allocations to be of _CLIENT_BLOCK type
 #else
 	#define _CrtDumpMemoryLeaks() {}
+	#define NDEBUG
 #endif
 
 #include <ctime>
 #include <chrono>
+#include  <stdio.h>
 #include <assert.h>
 #include "Parser.h"
 #include "Bot.h"
@@ -37,17 +39,17 @@ void printArray(int **a, int rows, int cols) {
 }
 
 void test() {
-	Board b = Board(16, 18);
-	b.initiateBoardPositions();
-	cout << b.toString() << "\n";
+	Coordinate x(5, 3);
+	Coordinate y(10, 9);
+	Coordinate z(5, 3);
 
-	b.nextRound();
-	cout << b.toString() << "\n";
-
-	Board *b2 = b.getNextRoundBoard();
-	cout << b2->toString() << "\n";
-
-	delete b2;
+	Coordinate cs[] = { x, y, z };
+	bool xb = x == cs[0];
+	bool yb = x == cs[1];
+	bool zb = x == cs[2];
+	cout << xb << "\n";
+	cout << yb << "\n";
+	cout << zb << "\n";
 }
 
 void play() {
@@ -68,7 +70,7 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 
 	int bot0Time = 10000;
 	int bot1Time = 10000;
-	int timePerMove = 700;
+	int timePerMove = 200;
 	bot0.SetTimePerMove(timePerMove);
 	bot1.SetTimePerMove(timePerMove);
 
@@ -160,7 +162,7 @@ void playTest() {
 	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	int bot1AdversarialTrials[] = { 6 };
+	int bot1AdversarialTrials[] = { 5 };
 	BirthRandSearch bot1Strategy = BirthRandSearch(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 

@@ -1,11 +1,13 @@
 
 #ifdef _DEBUG
-#include <stdlib.h>
-#include <crtdbg.h>
-#define _CRTDBG_MAP_ALLOC
-#define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
-// allocations to be of _CLIENT_BLOCK type
+	#include <stdlib.h>
+	#include <crtdbg.h>
+	#define _CRTDBG_MAP_ALLOC
+	#define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+	// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
+	// allocations to be of _CLIENT_BLOCK type
+#else
+	#define NDEBUG
 #endif
 
 #ifndef INT_MAX
@@ -24,6 +26,7 @@
 #include "Move.h"
 #include "Coordinate.h"
 #include "Tools.h"
+#include "RandomVector.h"
 
 class BirthRandSearch : public Strategy
 {

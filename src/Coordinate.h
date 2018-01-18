@@ -13,6 +13,7 @@ public:
 	Coordinate();
     Coordinate(int x, int y);
     virtual string toString();
+	virtual bool operator== (Coordinate &other);
 };
 
 #endif

@@ -15,3 +15,7 @@ string Coordinate::toString()
     stringStream << x << "," << y;
     return stringStream.str();
 }
+
+bool Coordinate::operator==(Coordinate &other) {
+	return x == other.x && y == other.y;
+}

@@ -115,9 +115,9 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, P
 	return MoveAndScore(bestMove, bestMoveScore);
 }
 
-BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells,
-	vector<Coordinate> &myCells, Board &nextRoundBoard, int time) {
-	int startTime = Tools::get_time();
+BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID, 
+	vector<Coordinate> &deadCellsVect, vector<Coordinate> &myCellsVect, Board &nextRoundBoard, int time) {
+	long startTime = Tools::get_time();
 
 	Board emptyBoard(board.getWidth(), board.getHeight());
 
@@ -128,28 +128,37 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 		return MoveAndScore(passMove, passScore);
 	}
 
-	Coordinate target = Tools::GetRandomElementFromVector(deadCells);
-	Coordinate sacrifice1 = Tools::PopRandomElementFromVector(myCells);
-	Coordinate sacrifice2 = Tools::PopRandomElementFromVector(myCells);
+	RandomVector<Coordinate> deadCells(deadCellsVect);
+	RandomVector<Coordinate> myCells(myCellsVect);
+
+	Coordinate target = deadCells.pop_back();
+	Coordinate sacrifice1 = myCells.pop_back();
+	Coordinate sacrifice2 = myCells.pop_back();
 	Move bestMove = Move(target, sacrifice1, sacrifice2);
 	double bestScore = getMoveScore(board, playerID, enemyID, bestMove, nextRoundBoard, emptyBoard, 0);
 
 	int myRemainingCells = myCells.size();
 	int trials = 0;
 	for (long currentTime = Tools::get_time(); currentTime - startTime < time; currentTime = Tools::get_time()) {
-		Coordinate newTarget = Tools::GetRandomElementFromVector(deadCells);
+		assert(deadCells.size() > 0);
+		Coordinate newTarget = deadCells.pop_back();
 		Move trialMove = Move(newTarget, sacrifice1, sacrifice2);
 		double trialScore = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0);
+		
 		if (trialScore > bestScore) {
 			bestScore = trialScore;
 			bestMove = trialMove;
+			deadCells.push_back(target);
 			target = newTarget;
 		}
+		else deadCells.push_back(newTarget);
 
 		trials++;
+
 		if (myRemainingCells > 0) {
+			assert(myCells.size() > 0);
 			trials += 2;
-			Coordinate newSacrifice1 = Tools::PopRandomElementFromVector(myCells);
+			Coordinate newSacrifice1 = myCells.pop_back();
 			trialMove = Move(target, newSacrifice1, sacrifice2);
 			trialScore = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0);
 			if (trialScore > bestScore) {
@@ -160,7 +169,7 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 			}
 			else myCells.push_back(newSacrifice1);
 
-			Coordinate newSacrifice2 = Tools::PopRandomElementFromVector(myCells);
+			Coordinate newSacrifice2 = myCells.pop_back();
 			trialMove = Move(target, sacrifice1, newSacrifice2);
 			trialScore = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0);
 			if (trialScore > bestScore) {
@@ -171,70 +180,10 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 			}
 			else myCells.push_back(newSacrifice2);
 		}
-		currentTime = Tools::get_time();
 	}
 	//cerr << "BirthRandSearch2 trials: " << trials << "\n";
 	return MoveAndScore(bestMove, bestScore);
 }
-
-//BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, 
-//																  vector<Coordinate> &myCells, Board &nextRoundBoard, int time) {
-//	int startTime = Tools::get_time();
-//
-//	Board emptyBoard(board.getWidth(), board.getHeight());
-//	
-//	if (board.getPlayerCellCount(playerID) < 2) {
-//		// not possible to birth, so just pass
-//		Move passMove = Move();
-//		double passScore = getMoveScore(board, playerID, enemyID, passMove, nextRoundBoard, emptyBoard);
-//		return MoveAndScore(passMove, passScore);
-//	}
-//
-//	Coordinate target = Tools::PopRandomElementFromVector(deadCells);
-//	Coordinate sacrifice1 = Tools::PopRandomElementFromVector(myCells);
-//	Coordinate sacrifice2 = Tools::PopRandomElementFromVector(myCells);
-//	Move trialMove = Move(target, sacrifice1, sacrifice2);
-//	int trialScore = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard);
-//
-//	Move bestMove = trialMove;
-//	int bestScore = trialScore;
-//
-//	while (deadCells.size() > 0 || myCells.size() > 0) {
-//		if (deadCells.size() > 0) {
-//			Coordinate newTarget = Tools::PopRandomElementFromVector(deadCells);
-//			trialMove = Move(newTarget, sacrifice1, sacrifice2);
-//			trialScore = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard);
-//			if (trialScore > bestScore) {
-//				bestScore = trialScore;
-//				bestMove = trialMove;
-//				target = newTarget;
-//			}
-//		}
-//
-//		if (myCells.size() > 0) {
-//			Coordinate newSacrifice = Tools::PopRandomElementFromVector(myCells);
-//
-//			Move trialMove1 = Move(target, newSacrifice, sacrifice2);
-//			int trial1Score = getMoveScore(board, playerID, enemyID, trialMove1, nextRoundBoard, emptyBoard);
-//			Move trialMove2 = Move(target, sacrifice1, newSacrifice);
-//			int trial2Score = getMoveScore(board, playerID, enemyID, trialMove2, nextRoundBoard, emptyBoard);
-//
-//			if (trial1Score > bestScore || trial2Score > bestScore) {
-//				if (trial1Score > trial2Score) {
-//					bestScore = trial1Score;
-//					bestMove = trialMove1;
-//					sacrifice1 = newSacrifice;
-//				}
-//				else {
-//					bestScore = trial2Score;
-//					bestMove = trialMove2;
-//					sacrifice2 = newSacrifice;
-//				}
-//			}
-//		}
-//	}
-//	return MoveAndScore(bestMove, bestScore);
-//}
 
 //BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID,
 //	vector<Coordinate> &deadCells, vector<Coordinate> &myCells, Board &nextRoundBoard, int time) {
@@ -287,5 +236,5 @@ Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, in
 
 	delete nextRoundBoard;
 
-	return bestKillMove.score > bestBirthMove.score ? bestKillMove.move : bestBirthMove.move;
+	return bestBirthMove.score > bestKillMove.score ? bestBirthMove.move : bestKillMove.move;
 }
