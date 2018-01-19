@@ -44,9 +44,10 @@ private:
 	virtual double getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth);
 	virtual inline double getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth);
 
-	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, Board &nextRoundBoard);
+	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, 
+										 vector<Coordinate> &myCells, Board &nextRoundBoard);
 	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, vector<Coordinate> &myCells,
-		Board &nextRoundBoard, int time);
+										  Board &nextRoundBoard, int time);
 
 public:
 	BirthRandSearch2(int maxDepth, int* adversarialTrials);

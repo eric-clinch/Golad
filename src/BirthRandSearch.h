@@ -1,13 +1,13 @@
 
 #ifdef _DEBUG
-	#include <stdlib.h>
-	#include <crtdbg.h>
-	#define _CRTDBG_MAP_ALLOC
-	#define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-	// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
-	// allocations to be of _CLIENT_BLOCK type
+#include <stdlib.h>
+#include <crtdbg.h>
+#define _CRTDBG_MAP_ALLOC
+#define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
+// allocations to be of _CLIENT_BLOCK type
 #else
-	#define NDEBUG
+#define NDEBUG
 #endif
 
 #ifndef INT_MAX
@@ -44,7 +44,8 @@ private:
 	virtual double getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth);
 	virtual inline double getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth);
 
-	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, Board &nextRoundBoard);
+	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
+		vector<Coordinate> &myCells, Board &nextRoundBoard);
 	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, vector<Coordinate> &myCells,
 		Board &nextRoundBoard, int time);
 

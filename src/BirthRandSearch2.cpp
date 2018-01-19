@@ -93,13 +93,24 @@ inline double BirthRandSearch2::getMoveScore(Board &board, Player playerID, Play
 	}
 }
 
-BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, Player playerID, Player enemyID,
-	vector<Coordinate> &enemyCells, Board &nextRoundBoard) {
+BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, 
+																 vector<Coordinate> &myCells, Board &nextRoundBoard) {
 
 	Board emptyBoard(board.getWidth(), board.getHeight());
 
 	Move bestMove = Move();
 	double bestMoveScore = getMoveScore(board, playerID, enemyID, bestMove, nextRoundBoard, emptyBoard, 0);
+
+	int numMyCells = myCells.size();
+	for (int i = 0; i < numMyCells; i++) {
+		Coordinate myCell = myCells[i];
+		Move trialMove = Move(myCell);
+		double trialMoveScore = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0);
+		if (trialMoveScore > bestMoveScore) {
+			bestMoveScore = trialMoveScore;
+			bestMove = trialMove;
+		}
+	}
 
 	int numEnemyCells = enemyCells.size();
 	for (int i = 0; i < numEnemyCells; i++) {
@@ -229,7 +240,7 @@ Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, in
 
 	Board emptyBoard(board.getWidth(), board.getHeight());
 
-	MoveAndScore bestKillMove = getBestKillMove(board, playerID, enemyID, enemyCells, *nextRoundBoard);
+	MoveAndScore bestKillMove = getBestKillMove(board, playerID, enemyID, enemyCells, myCells, *nextRoundBoard);
 
 	int dt = Tools::get_time() - startTime;
 	MoveAndScore bestBirthMove = getBestBirthMove(board, playerID, enemyID, deadCells, myCells, *nextRoundBoard, timePerMove - dt);

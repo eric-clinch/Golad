@@ -1,3 +1,7 @@
+#ifndef _DEBUG
+	#define NDEBUG
+#endif
+
 #ifndef RANDOMVECTOR_h
 #define RANDOMVECTOR_h
 

@@ -13,7 +13,7 @@
 
 #include <ctime>
 #include <chrono>
-#include  <stdio.h>
+#include <stdio.h>
 #include <assert.h>
 #include "Parser.h"
 #include "Bot.h"
@@ -70,7 +70,7 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 
 	int bot0Time = 10000;
 	int bot1Time = 10000;
-	int timePerMove = 200;
+	int timePerMove = 170;
 	bot0.SetTimePerMove(timePerMove);
 	bot1.SetTimePerMove(timePerMove);
 
@@ -162,7 +162,7 @@ void playTest() {
 	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	int bot1AdversarialTrials[] = { 5 };
+	int bot1AdversarialTrials[] = { 3 };
 	BirthRandSearch bot1Strategy = BirthRandSearch(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
