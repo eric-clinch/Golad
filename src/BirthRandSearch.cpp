@@ -3,6 +3,8 @@
 
 using namespace std;
 
+double BirthRandSearch::max_score = 288.0;
+
 struct BirthRandSearch::MoveAndScore {
 	Move move;
 	double score;
@@ -87,8 +89,8 @@ inline double BirthRandSearch::getMoveScore(Board &board, Player playerID, Playe
 		return (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
 	}
 	else {
-		if (trialBoard.getPlayerCellCount(playerID) == 0) return 0;
-		else if (trialBoard.getPlayerCellCount(enemyID) == 0) return INT_MAX;
+		if (trialBoard.getPlayerCellCount(playerID) == 0) return -max_score;
+		else if (trialBoard.getPlayerCellCount(enemyID) == 0) return max_score;
 		return -getBestMoveScore(trialBoard, enemyID, playerID, adversarialTrials[depth], depth);
 	}
 }
@@ -192,7 +194,7 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Pl
 			else myCells.push_back(newSacrifice2);
 		}
 	}
-	cerr << "BirthRandSearch trials: " << trials << "\n";
+	//cerr << "BirthRandSearch trials: " << trials << "\n";
 	return MoveAndScore(bestMove, bestScore);
 }
 

@@ -43,6 +43,7 @@ private:
 	virtual inline void copyBoard(Board &blankBoard);
 
 public:
+	Board();
 	Board(int width, int height);
 	~Board();
 	bool operator== (Board &other);
@@ -57,6 +58,7 @@ public:
 	virtual int getHeight();
 	
 	virtual inline void nextRound();
+	virtual void setNextRoundBoard(Board &result);
 	virtual Board *getNextRoundBoard();
 	virtual Board *makeMove(Move &move, Player playerID);
 	virtual void makeMoveOnBoard(Move &move, Player playerID);

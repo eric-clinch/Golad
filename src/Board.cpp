@@ -253,6 +253,40 @@ inline void Board::nextRound() {
 	board = newBoard;
 }
 
+void Board::setNextRoundBoard(Board &result) {
+	result.P0CellCount = result.P1CellCount = 0;
+	for (int y = 1; y <= height; y++) {
+		int cellIndex = getCellIndex(1, y);
+		char newStatus = simulationLookupTable[cellIndex];
+		if (newStatus == '0') result.P0CellCount++;
+		else if (newStatus == '1') result.P1CellCount++;
+		result.board[1][y] = newStatus;
+
+		for (int x = 2; x <= width; x++) {
+			cellIndex /= 27;
+
+			char c = board[x + 1][y - 1];
+			if (c == '0') cellIndex += 729;
+			else if (c == '1') cellIndex += 1458;
+
+			c = board[x + 1][y];
+			if (c == '0') cellIndex += 2187;
+			else if (c == '1') cellIndex += 4374;
+
+			c = board[x + 1][y + 1];
+			if (c == '0') cellIndex += 6561;
+			else if (c == '1') cellIndex += 13122;
+
+			assert(cellIndex == getCellIndex(x, y));
+
+			char newStatus = simulationLookupTable[cellIndex];
+			if (newStatus == '0') result.P0CellCount++;
+			else if (newStatus == '1') result.P1CellCount++;
+			result.board[x][y] = newStatus;
+		}
+	}
+}
+
 Board* Board::getNextRoundBoard() {
 	Board *result = new Board(width, height);
 
@@ -291,13 +325,11 @@ Board* Board::getNextRoundBoard() {
 	return result;
 }
 
-Board::Board(int width, int height)
+Board::Board() {}
+
+Board::Board(int width, int height) : width(width), height(height), __width__(width + 2), __height__(height + 2), board(new char*[this->__width__]),
+									  P0CellCount(0), P1CellCount(0)
 {
-	this->width = width;
-	this->__width__ = width + 2;
-	this->height = height;
-	this->__height__ = height + 2;
-	board = new char*[__width__];
 	for (int i = 0; i < __width__; i++) {
 		board[i] = new char[__height__];
 	}

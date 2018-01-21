@@ -10,14 +10,6 @@
 	#define NDEBUG
 #endif
 
-#ifndef INT_MAX
-#define INT_MAX 100000
-#endif
-
-#ifndef INT_MIN
-#define INT_MIN -100000
-#endif
-
 #ifndef BirthRandSearch2_h
 #define BirthRandSearch2_h
 
@@ -31,9 +23,12 @@
 class BirthRandSearch2 : public Strategy
 {
 private:
+	static double max_score;
 	int maxDepth;
 	// len(adversarial) needs to be equal to maxDepth
 	int *adversarialTrials;
+	Board **trialBoards;
+	Board **nextRoundBoards;
 
 	struct MoveAndScore;
 
