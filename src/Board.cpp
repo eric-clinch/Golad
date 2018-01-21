@@ -7,15 +7,20 @@
 
 using namespace std;
 
-// neighbor position significance
-// 0 1 2
-// 3 4 5
-// 6 7 8
+// produces a unique index for each configuration of the
+// given grid, assuming the grid is 3x3 and its only elements
+// are '0', '1', and ' '. Uses a base 3 system in order to 
+// encode the status of each cell in the grid into the index
+// and produce a unique index for each grid state.
+// neighbor position significance:
+// 0 3 6
+// 1 4 7
+// 2 5 8
 inline int getLookupTableIndex(char **grid) {
 	int significance = 1;
 	int result = 0;
-	for (int y = 0; y < 3; y++) {
-		for (int x = 0; x < 3; x++) {
+	for (int x = 0; x < 3; x++) {
+		for (int y = 0; y < 3; y++) {
 			if (grid[x][y] == '0') {
 				result += significance;
 			}
@@ -31,10 +36,13 @@ inline int getLookupTableIndex(char **grid) {
 
 void getLookupTableHelper(char *lookupTable, char **grid, int x, int y, int bot0Neighbors, int bot1Neighbors) {
 	if (y > 2) {
+		// the grid is full, make a corresponding entry into the lookup table
 		int index = getLookupTableIndex(grid);
 		assert(lookupTable[index] == ' ');
 		assert(0 <= index);
 		assert(index < 19683);
+
+		// make sure not to account for the middle cell in the neighbor count
 		char currentCellStatus = grid[1][1];
 		if (currentCellStatus == '0') bot0Neighbors--;
 		else if (currentCellStatus == '1') bot1Neighbors--;
@@ -54,6 +62,7 @@ void getLookupTableHelper(char *lookupTable, char **grid, int x, int y, int bot0
 	}
 
 	else {
+		// fill the grid
 		int nextX = x + 1;
 		int nextY = y;
 		if (nextX > 2) {
@@ -93,9 +102,9 @@ char* getLookupTable() {
 char* Board::simulationLookupTable = getLookupTable();
 
 // significance of each cell:
-// 1   3    9
-// 27  81   243
-// 729 2187 6561
+// 1  27  729
+// 3  81  2187
+// 9  243 6561
 int Board::getCellIndex(int cellX, int cellY) {
 	assert(0 < cellX && cellX <= width);
 	assert(0 < cellY && cellY <= height);
@@ -108,36 +117,36 @@ int Board::getCellIndex(int cellX, int cellY) {
 	else if (c == '1') index += 2;
 
 	c = column[cellY];
-	if (c == '0') index += 27;
-	else if (c == '1') index += 54;
+	if (c == '0') index += 3;
+	else if (c == '1') index += 6;
 
 	c = column[cellY + 1];
-	if (c == '0') index += 729;
-	else if (c == '1') index += 1458;
+	if (c == '0') index += 9;
+	else if (c == '1') index += 18;
 
 	column = board[cellX];
 
 	c = column[cellY - 1];
-	if (c == '0') index += 3;
-	else if (c == '1') index += 6;
+	if (c == '0') index += 27;
+	else if (c == '1') index += 54;
 
 	c = column[cellY];
 	if (c == '0') index += 81;
 	else if (c == '1') index += 162;
 
 	c = column[cellY + 1];
-	if (c == '0') index += 2187;
-	else if (c == '1') index += 4374;
+	if (c == '0') index += 243;
+	else if (c == '1') index += 486;
 
 	column = board[cellX + 1];
 
 	c = column[cellY - 1];
-	if (c == '0') index += 9;
-	else if (c == '1') index += 18;
+	if (c == '0') index += 729;
+	else if (c == '1') index += 1458;
 
 	c = column[cellY];
-	if (c == '0') index += 243;
-	else if (c == '1') index += 486;
+	if (c == '0') index += 2187;
+	else if (c == '1') index += 4374;
 
 	c = column[cellY + 1];
 	if (c == '0') index += 6561;
@@ -175,19 +184,17 @@ inline void Board::updateRegionStatus(int cellX, int cellY, Board &lastRoundBoar
 	int minY = max(cellY - 1, 1);
 	int maxY = min(cellY + 1, height);
 
-
-
-	for (int x = minX; x <= maxX; x++) {
-		int cellIndex = lastRoundBoard.getCellIndex(x, minY);
-		updateCellStatus(x, minY, cellIndex);
-		for (int y = minY + 1; y <= maxY; y++) {
+	for (int y = minY; y <= maxY; y++) {
+		int cellIndex = lastRoundBoard.getCellIndex(minX, y);
+		updateCellStatus(minX, y, cellIndex);
+		for (int x = minX + 1; x <= maxX; x++) {
 			cellIndex /= 27;
 
-			char c = lastRoundBoard.board[x - 1][y + 1];
+			char c = lastRoundBoard.board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = lastRoundBoard.board[x][y + 1];
+			c = lastRoundBoard.board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
@@ -211,21 +218,21 @@ inline void Board::nextRound() {
 	}
 
 	P0CellCount = P1CellCount = 0;
-	for (int x = 1; x <= width; x++) {
-		int cellIndex = getCellIndex(x, 1);
+	for (int y = 1; y <= height; y++) {
+		int cellIndex = getCellIndex(1, y);
 		char newStatus = simulationLookupTable[cellIndex];
 		if (newStatus == '0') P0CellCount++;
 		else if (newStatus == '1') P1CellCount++;
-		newBoard[x][1] = newStatus;
+		newBoard[1][y] = newStatus;
 
-		for (int y = 2; y <= height; y++) {
+		for (int x = 2; x <= width; x++) {
 			cellIndex /= 27;
 
-			char c = board[x - 1][y + 1];
+			char c = board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = board[x][y + 1];
+			c = board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
@@ -250,21 +257,21 @@ Board* Board::getNextRoundBoard() {
 	Board *result = new Board(width, height);
 
 	result->P0CellCount = result->P1CellCount = 0;
-	for (int x = 1; x <= width; x++) {
-		int cellIndex = getCellIndex(x, 1);
+	for (int y = 1; y <= height; y++) {
+		int cellIndex = getCellIndex(1, y);
 		char newStatus = simulationLookupTable[cellIndex];
 		if (newStatus == '0') result->P0CellCount++;
 		else if (newStatus == '1') result->P1CellCount++;
-		result->board[x][1] = newStatus;
+		result->board[1][y] = newStatus;
 
-		for (int y = 2; y <= height; y++) {
+		for (int x = 2; x <= width; x++) {
 			cellIndex /= 27;
 
-			char c = board[x - 1][y + 1];
+			char c = board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = board[x][y + 1];
+			c = board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
