@@ -63,7 +63,7 @@ public:
 	virtual Board *makeMove(Move &move, Player playerID);
 	virtual void makeMoveOnBoard(Move &move, Player playerID);
 	virtual void applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board &result);
-	virtual string toString();
+	virtual string toString(bool showBoard = false);
 
 	virtual vector<Coordinate> GetCells(char type);
 };

@@ -61,6 +61,7 @@ double BirthRandSearch2::getBestMoveScore(Board &board, Player playerID, Player 
 	Board *trialBoard = trialBoards[depth];
 	Board *nextRoundBoard = nextRoundBoards[depth];
 	board.setNextRoundBoard(*nextRoundBoard);
+	assert(*nextRoundBoard == *board.getNextRoundBoard());
 
 	Move passMove = Move();
 	double passMoveScore = getMoveScore(board, playerID, enemyID, passMove, *nextRoundBoard, *trialBoard, depth + 1);
@@ -85,6 +86,7 @@ double BirthRandSearch2::getBestMoveScore(Board &board, Player playerID, Player 
 
 inline double BirthRandSearch2::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard, int depth) {
 	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
+	assert(trialBoard == *board.makeMove(move, playerID));
 	
 	if (depth == maxDepth) {
 		return (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);

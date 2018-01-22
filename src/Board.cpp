@@ -217,6 +217,16 @@ inline void Board::nextRound() {
 		newBoard[i] = new char[__height__];
 	}
 
+	// fill in the outer edge
+	for (int x = 0; x < __width__; x++) {
+		newBoard[x][0] = '.';
+		newBoard[x][__height__ - 1] = '.';
+	}
+	for (int y = 1; y <= height; y++) {
+		newBoard[0][y] = '.';
+		newBoard[__width__ - 1][y] = '.';
+	}
+
 	P0CellCount = P1CellCount = 0;
 	for (int y = 1; y <= height; y++) {
 		int cellIndex = getCellIndex(1, y);
@@ -350,12 +360,20 @@ Board::~Board() {
 }
 
 bool Board::operator== (Board &other) {
-	if (width != other.width || height != other.height) return false;
-	if (__width__ != other.__width__ || __height__ != other.__height__) return false;
-	if (P0CellCount != other.P0CellCount || P1CellCount != other.P1CellCount) return false;
+	if (width != other.width || height != other.height) {
+		return false;
+	}
+	if (__width__ != other.__width__ || __height__ != other.__height__) { 
+		return false; 
+	}
+	if (P0CellCount != other.P0CellCount || P1CellCount != other.P1CellCount) {
+		return false;
+	}
 	for (int x = 0; x < __width__; x++) {
 		for (int y = 0; y < __height__; y++) {
-			if (board[x][y] != other.board[x][y]) return false;
+			if (board[x][y] != other.board[x][y]) {
+				return false;
+			}
 		}
 	}
 	return true;
@@ -561,14 +579,24 @@ void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board 
 	}
 }
 
-string Board::toString() {
+string Board::toString(bool showBorder) {
 	ostringstream result;
 	result << "Player 0: " << P0CellCount << " Player 1: " << P1CellCount << "\n";
-	for (int y = 1; y <= height; y++) {
-		for (int x = 1; x <= width; x++) {
-			result << board[x][y] << " ";
+	if (showBorder) {
+		for (int y = 0; y < __height__; y++) {
+			for (int x = 0; x < __width__; x++) {
+				result << board[x][y] << " ";
+			}
+			result << "\n";
 		}
-		result << "\n";
+	}
+	else {
+		for (int y = 1; y <= height; y++) {
+			for (int x = 1; x <= width; x++) {
+				result << board[x][y] << " ";
+			}
+			result << "\n";
+		}
 	}
 	return result.str();
 }
