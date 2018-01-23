@@ -34,6 +34,11 @@ struct MCDSStrategy::CoordinateAndScore {
 		}
 		else return scoreSum / (double)numSimulations + sqrt(confidenceNumerator / numSimulations);
 	}
+
+	void updateScore(double score) {
+		scoreSum += score;
+		numSimulations += 1;
+	}
 };
 
 vector<MoveType> MCDSStrategy::GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID) {
@@ -182,6 +187,9 @@ MCDSStrategy::CoordinateAndScore* MCDSStrategy::getBestSacrifices(vector<MCDSStr
 			nextBestScore = trialScore;
 		}
 	}
+
+	CoordinateAndScore *result = new CoordinateAndScore[2]{ bestSacrifice, nextBestSacrifice };
+	return result;
 }
 
 Coordinate* MCDSStrategy::getResultSacrifices(vector <CoordinateAndScore> &myCells) {
@@ -216,7 +224,7 @@ Coordinate* MCDSStrategy::getResultSacrifices(vector <CoordinateAndScore> &myCel
 		}
 	}
 
-	Coordinate result[] = { bestSacrifice.coordinate, nextBestSacrifice.coordinate };
+	Coordinate *result = new Coordinate[2]{ bestSacrifice.coordinate, nextBestSacrifice.coordinate };
 	return result;
 }
 
@@ -256,7 +264,48 @@ Coordinate MCDSStrategy::getResultBirthTarget(vector<CoordinateAndScore> &deadCe
 
 MCDSStrategy::MoveAndScore MCDSStrategy::getBestBirthMove(Board &board, Player playerID, Player enemyID,
 	vector<Coordinate> &deadCellsVect, vector<Coordinate> &myCellsVect, Board &nextRoundBoard, int time) {
-	return MoveAndScore(Move(), 0.0); // TODO
+	long startTime = Tools::get_time();
+	Board trialBoard(board.getWidth(), board.getHeight());
+
+	if (board.getPlayerCellCount(playerID) < 2) {
+		// not possible to birth, so just pass
+		Move passMove = Move();
+		double passScore = getMoveScore(board, playerID, enemyID, passMove, nextRoundBoard, trialBoard, 0);
+		return MoveAndScore(passMove, passScore);
+	}
+	
+	vector<CoordinateAndScore> deadCells = vector<CoordinateAndScore>();
+	for (Coordinate c : deadCellsVect) deadCells.push_back(CoordinateAndScore(c));
+	random_shuffle(deadCells.begin(), deadCells.end());
+
+	vector<CoordinateAndScore> myCells = vector<CoordinateAndScore>();
+	for (Coordinate c : myCellsVect) myCells.push_back(CoordinateAndScore(c));
+	random_shuffle(myCells.begin(), myCells.end());
+
+	int totalSimulations = 0;
+	for (long currentTime = Tools::get_time(); currentTime - startTime < time; currentTime = Tools::get_time()) {
+		CoordinateAndScore *sacrifices = getBestSacrifices(myCells, totalSimulations);
+		CoordinateAndScore sacrifice1 = sacrifices[0];
+		CoordinateAndScore sacrifice2 = sacrifices[1];
+		delete sacrifices;
+
+		CoordinateAndScore target = getBestBirthTarget(deadCells, totalSimulations);
+		
+		Move trialMove = Move(target.coordinate, sacrifice1.coordinate, sacrifice2.coordinate);
+		double score = getMoveScore(board, playerID, enemyID, trialMove, nextRoundBoard, trialBoard, 0);
+		target.updateScore(score);
+		sacrifice1.updateScore(score);
+		sacrifice2.updateScore(score);
+		totalSimulations += 1;
+	}
+
+	Coordinate *sacrifices = getResultSacrifices(myCells);
+	Coordinate sacrifice1 = sacrifices[0];
+	Coordinate sacrifice2 = sacrifices[1];
+	Coordinate target = getResultBirthTarget(deadCells);
+
+	Move resultMove(target, sacrifice1, sacrifice2);
+	return MoveAndScore(resultMove, max_score);
 }
 
 Move MCDSStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {

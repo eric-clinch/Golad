@@ -14,6 +14,7 @@
 #include <ctime>
 #include <chrono>
 #include <stdio.h>
+#include <cstdio>>
 #include <assert.h>
 #include "Parser.h"
 #include "Bot.h"
@@ -23,6 +24,7 @@
 #include "AdversarialStrategy.h"
 #include "BirthRandSearch.h"
 #include "BirthRandSearch2.h"
+#include "MCDSStrategy.h"
 #include "Board.h"
 #include "Tools.h"
 
@@ -131,17 +133,17 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 	return P0Count > P1Count ? 0 : 1;
 }
 
-void playTournament(Bot bot0, Bot bot1, int rounds = 100) {
+void playTournament(Bot bot0, Bot bot1, int rounds = 100, bool verbose = false) {
 	int bot0Wins = 0;
 	int bot1Wins = 0;
 
 	for (int currentRound = 1; currentRound <= rounds; currentRound++) {
 		int matchResult;
 		if (currentRound % 2 == 1) {
-			matchResult = playMatch(bot0, bot1);
+			matchResult = playMatch(bot0, bot1, verbose);
 		}
 		else {
-			matchResult = 1 - playMatch(bot1, bot0);
+			matchResult = 1 - playMatch(bot1, bot0, verbose);
 			if (matchResult == 2) matchResult = -1; // ties should be -1
 		}
 		if (matchResult == 0) bot0Wins++;
@@ -163,7 +165,7 @@ void playTest() {
 	Bot bot0 = Bot(&bot0Strategy);
 
 	int bot1AdversarialTrials[] = { 3 };
-	BirthRandSearch bot1Strategy = BirthRandSearch(1, bot1AdversarialTrials);
+	MCDSStrategy bot1Strategy = MCDSStrategy(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
 	playTournament(bot0, bot1, 1000);
@@ -174,7 +176,7 @@ int main() {
 	// Initialize random number generator
 	srand(time(NULL));
 
-	//getLookupTable();
+	//freopen("output.txt", "w", stderr);
 
 	playTest();
 	//test();

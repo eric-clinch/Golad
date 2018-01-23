@@ -20,7 +20,7 @@
 #include "Coordinate.h"
 #include "Tools.h"
 
-class MCDSStrategy : Strategy {
+class MCDSStrategy : public Strategy {
 private:
 	static double max_score;
 
