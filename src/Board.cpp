@@ -499,6 +499,20 @@ inline void Board::copyBoard(Board &blankBoard) {
 	assert(*this == blankBoard);
 }
 
+bool Board::isLegal(Move &move, Player playerID) {
+	if (move.MoveType == KILL) {
+		return board[move.target.x + 1][move.target.y + 1] != '.';
+	}
+	else if (move.MoveType == BIRTH) {
+		char playerChar = to_string(playerID).at(0);
+		return (board[move.sacrifice1.x + 1][move.sacrifice1.y + 1] == board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] &&
+		        board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] == playerChar &&
+				board[move.target.x + 1][move.target.y + 1] == '.' &&
+				(move.sacrifice1.x != move.sacrifice2.x || move.sacrifice1.y != move.sacrifice2.y));
+	}
+	else return true;
+}
+
 Board* Board::makeMove(Move &move, Player playerID) {
 	Board *result = new Board(width, height);
 	copyBoard(result->board);
@@ -506,17 +520,53 @@ Board* Board::makeMove(Move &move, Player playerID) {
 	return result;
 }
 
-void Board::makeMoveOnBoard(Move &move, Player playerID) {
+void Board::makeMove(Move &move, Player playerID, Board &result) {
+	assert(isLegal(move, playerID));
+
 	if (move.MoveType == KILL) {
-		assert(board[move.target.x + 1][move.target.y + 1] != '.');
+		int targetX = move.target.x + 1;
+		int targetY = move.target.y + 1;
+
+		char targetChar = board[targetX][targetY];
+		board[targetX][targetY] = '.';
+
+		setNextRoundBoard(result);
+
+		board[targetX][targetY] = targetChar;
+	}
+	else if (move.MoveType == BIRTH) {
+		int sacrifice1X = move.sacrifice1.x + 1;
+		int sacrifice1Y = move.sacrifice1.y + 1;
+
+		int sacrifice2X = move.sacrifice2.x + 1;
+		int sacrifice2Y = move.sacrifice2.y + 1;
+
+		int targetX = move.target.x + 1;
+		int targetY = move.target.y + 1;
+
+		char playerChar = to_string(playerID).at(0);
+		board[sacrifice1X][sacrifice1Y] = '.';
+		board[sacrifice2X][sacrifice2Y] = '.';
+		board[targetX][targetY] = playerChar;
+
+		setNextRoundBoard(result);
+
+		board[sacrifice1X][sacrifice1Y] = playerChar;
+		board[sacrifice2X][sacrifice2Y] = playerChar;
+		board[targetX][targetY] = '.';
+	}
+	else {
+		setNextRoundBoard(result);
+	}
+}
+
+void Board::makeMoveOnBoard(Move &move, Player playerID) {
+	assert(isLegal(move, playerID));
+	if (move.MoveType == KILL) {
 		board[move.target.x + 1][move.target.y + 1] = '.';
 	}
 	else if (move.MoveType == BIRTH) {
 		char playerChar = to_string(playerID).at(0);
-		assert(board[move.sacrifice1.x + 1][move.sacrifice1.y + 1] == board[move.sacrifice2.x + 1][move.sacrifice2.y + 1]);
-		assert(board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] == playerChar);
-		assert(board[move.target.x + 1][move.target.y + 1] == '.');
-		assert(move.sacrifice1.x != move.sacrifice2.x || move.sacrifice1.y != move.sacrifice2.y);
 		board[move.sacrifice1.x + 1][move.sacrifice1.y + 1] = '.';
 		board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] = '.';
 		board[move.target.x + 1][move.target.y + 1] = playerChar;
@@ -536,6 +586,7 @@ void Board::makeMoveOnBoard(Move &move, Player playerID) {
 // this should be used to minimize recomputation when applying different moves
 // to the same board.
 void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board &result) {
+	assert(isLegal(move, playerID));
 	nextRoundBoard.copyBoard(result);
 
 	if (move.MoveType == KILL) {
@@ -543,7 +594,6 @@ void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board 
 		int targetY = move.target.y + 1;
 
 		char targetChar = board[targetX][targetY];
-		assert(targetChar != '.');
 		board[targetX][targetY] = '.';
 
 		result.updateRegionStatus(targetX, targetY, *this);
@@ -561,10 +611,6 @@ void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board 
 		int targetY = move.target.y + 1;
 
 		char playerChar = to_string(playerID).at(0);
-		assert(board[sacrifice1X][sacrifice1Y] == board[sacrifice2X][sacrifice2Y]);
-		assert(board[sacrifice2X][sacrifice2Y] == playerChar);
-		assert(board[targetX][targetY] == '.');
-		assert(sacrifice1X != sacrifice2X || sacrifice1Y != sacrifice2Y);
 		board[sacrifice1X][sacrifice1Y] = '.';
 		board[sacrifice2X][sacrifice2Y] = '.';
 		board[targetX][targetY] = playerChar;

@@ -82,43 +82,46 @@ Move MCDSStrategy::getRandomMove(Board &board, Player playerID, Player enemyID, 
 	}
 }
 
-double MCDSStrategy::getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth) {
-	Board trialBoard(board.getWidth(), board.getHeight());
-	Board *nextRoundBoard = board.getNextRoundBoard();
-
-	Move passMove = Move();
-	double passMoveScore = getMoveScore(board, playerID, enemyID, passMove, *nextRoundBoard, trialBoard, depth + 1);
-
-	double bestScore = passMoveScore;
-
-	vector<Coordinate> deadCells = board.GetCells('.');
-	vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
-	vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
-	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, playerID, enemyID);
-
-	for (int i = 0; i < trials; i++) {
-		Move testMove = getRandomMove(board, playerID, enemyID, availableMoveTypes, deadCells, myCells, enemyCells);
-		double moveScore = getMoveScore(board, playerID, enemyID, testMove, *nextRoundBoard, trialBoard, depth + 1);
-		if (moveScore > bestScore) {
-			bestScore = moveScore;
-		}
-	}
-
-	delete nextRoundBoard;
-	return bestScore;
-};
-
 inline double MCDSStrategy::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard, int depth) {
-	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
+	
+	Board *boards[] = { new Board(board.getWidth(), board.getHeight()), new Board(board.getWidth(), board.getHeight()) };
+	int currentBoardIndex = 0;
+	Board *currentBoard = boards[currentBoardIndex];
+	Board *nextBoard = boards[1 - currentBoardIndex];
 
-	if (depth == maxDepth) {
-		return (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
+	board.applyMove(move, playerID, nextRoundBoard, *currentBoard);
+
+	Player currentPlayer, otherPlayer;
+	for (int round = 0; currentBoard->getPlayerCellCount(playerID) > 0 && currentBoard->getPlayerCellCount(enemyID) > 0 && round < 5; round++) {
+		if (round % 2 == 0) {
+			currentPlayer = enemyID;
+			otherPlayer = playerID;
+		}
+		else {
+			currentPlayer = playerID;
+			otherPlayer = enemyID;
+		}
+
+		vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(*currentBoard, currentPlayer, otherPlayer);
+		vector<Coordinate> currentPlayerCells = currentBoard->GetCells(to_string(currentPlayer).at(0));
+		vector<Coordinate> otherPlayerCells = currentBoard->GetCells(to_string(otherPlayer).at(0));
+		vector<Coordinate> deadCells = currentBoard->GetCells('.');
+		Move m = getRandomMove(*currentBoard, currentPlayer, otherPlayer, availableMoveTypes, deadCells, currentPlayerCells, otherPlayerCells);
+		currentBoard->makeMove(m, currentPlayer, nextRoundBoard);
+		
+		currentBoardIndex = 1 - currentBoardIndex;
+		currentBoard = boards[currentBoardIndex];
+		nextBoard = boards[1 - currentBoardIndex];
 	}
-	else {
-		if (trialBoard.getPlayerCellCount(playerID) == 0) return -max_score;
-		else if (trialBoard.getPlayerCellCount(enemyID) == 0) return max_score;
-		return -getBestMoveScore(trialBoard, enemyID, playerID, adversarialTrials[depth], depth);
-	}
+
+	int playerCellCount = currentBoard->getPlayerCellCount(playerID);
+	int enemyCellCount = currentBoard->getPlayerCellCount(enemyID);
+
+	delete currentBoard;
+	delete nextBoard;
+
+	if (playerCellCount > enemyCellCount) return 1;
+	else return 0;
 }
 
 MCDSStrategy::MoveAndScore MCDSStrategy::getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
@@ -262,6 +265,18 @@ Coordinate MCDSStrategy::getResultBirthTarget(vector<CoordinateAndScore> &deadCe
 	return bestTarget.coordinate;
 }
 
+void MCDSStrategy::printScores(vector<CoordinateAndScore> &deadCells, vector<CoordinateAndScore> &myCells, int totalSimulations) {
+	for (int i = 0; i < deadCells.size(); i++) {
+		CoordinateAndScore c = deadCells[i];
+		cerr << c.coordinate.toString() << " " << c.getScore(totalSimulations) << " ";
+	}
+	for (int i = 0; i < myCells.size(); i++) {
+		CoordinateAndScore c = myCells[i];
+		cerr << c.coordinate.toString() << " " << c.getScore(totalSimulations) << " ";
+	}
+	cerr << "\n";
+}
+
 MCDSStrategy::MoveAndScore MCDSStrategy::getBestBirthMove(Board &board, Player playerID, Player enemyID,
 	vector<Coordinate> &deadCellsVect, vector<Coordinate> &myCellsVect, Board &nextRoundBoard, int time) {
 	long startTime = Tools::get_time();
@@ -284,6 +299,8 @@ MCDSStrategy::MoveAndScore MCDSStrategy::getBestBirthMove(Board &board, Player p
 
 	int totalSimulations = 0;
 	for (long currentTime = Tools::get_time(); currentTime - startTime < time; currentTime = Tools::get_time()) {
+		//printScores(deadCells, myCells, totalSimulations);
+
 		CoordinateAndScore *sacrifices = getBestSacrifices(myCells, totalSimulations);
 		CoordinateAndScore sacrifice1 = sacrifices[0];
 		CoordinateAndScore sacrifice2 = sacrifices[1];
@@ -298,6 +315,7 @@ MCDSStrategy::MoveAndScore MCDSStrategy::getBestBirthMove(Board &board, Player p
 		sacrifice2.updateScore(score);
 		totalSimulations += 1;
 	}
+	cerr << "total simulations: " << totalSimulations << "\n";
 
 	Coordinate *sacrifices = getResultSacrifices(myCells);
 	Coordinate sacrifice1 = sacrifices[0];
@@ -325,7 +343,8 @@ Move MCDSStrategy::getMove(Board &board, Player playerID, Player enemyID, int ti
 
 	delete nextRoundBoard;
 
-	return bestBirthMove.score > bestKillMove.score ? bestBirthMove.move : bestKillMove.move;
+	Move result = bestBirthMove.score > bestKillMove.score ? bestBirthMove.move : bestKillMove.move;
+	return result;
 }
 
 MCDSStrategy::MCDSStrategy(int maxDepth, int *adversarialTrials, double confidenceConstant) {
