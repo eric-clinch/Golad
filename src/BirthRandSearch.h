@@ -24,10 +24,11 @@ class BirthRandSearch : public Strategy
 {
 private:
 	static double max_score;
-
 	int maxDepth;
 	// len(adversarial) needs to be equal to maxDepth
 	int *adversarialTrials;
+	Board **trialBoards;
+	Board **nextRoundBoards;
 
 	struct MoveAndScore;
 

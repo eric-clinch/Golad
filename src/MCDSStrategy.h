@@ -25,8 +25,6 @@ private:
 	static double max_score;
 
 	int maxDepth;
-	// len(adversarial) needs to be equal to maxDepth
-	int *adversarialTrials;
 	double confidenceConstant;
 
 	struct MoveAndScore;
@@ -36,7 +34,9 @@ private:
 		vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
 
-	virtual inline double getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth);
+	virtual Move approximateBestMove(Board &board, Player playerID, Player enemyID, Board &trialBoard, int iterations);
+	virtual double inline getScore(Board &board, Player playerID, Player enemyID);
+	virtual double randomPlayout(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth);
 
 	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
 		vector<Coordinate> &myCells, Board &nextRoundBoard);
@@ -51,7 +51,7 @@ private:
 		Board &nextRoundBoard, int time);
 
 public:
-	MCDSStrategy(int maxDepth, int *adversarialTrials, double confidenceConstant = 2.0);
+	MCDSStrategy(int maxDepth, double confidenceConstant = 2.0);
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
 };
 

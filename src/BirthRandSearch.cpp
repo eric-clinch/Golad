@@ -57,11 +57,14 @@ Move BirthRandSearch::getRandomMove(Board &board, Player playerID, Player enemyI
 }
 
 double BirthRandSearch::getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth) {
-	Board trialBoard(board.getWidth(), board.getHeight());
-	Board *nextRoundBoard = board.getNextRoundBoard();
+
+	Board *trialBoard = trialBoards[depth];
+	Board *nextRoundBoard = nextRoundBoards[depth];
+	board.setNextRoundBoard(*nextRoundBoard);
+	assert(*nextRoundBoard == *board.getNextRoundBoard());
 
 	Move passMove = Move();
-	double passMoveScore = getMoveScore(board, playerID, enemyID, passMove, *nextRoundBoard, trialBoard, depth + 1);
+	double passMoveScore = getMoveScore(board, playerID, enemyID, passMove, *nextRoundBoard, *trialBoard, depth + 1);
 
 	double bestScore = passMoveScore;
 
@@ -72,18 +75,18 @@ double BirthRandSearch::getBestMoveScore(Board &board, Player playerID, Player e
 
 	for (int i = 0; i < trials; i++) {
 		Move testMove = getRandomMove(board, playerID, enemyID, availableMoveTypes, deadCells, myCells, enemyCells);
-		double moveScore = getMoveScore(board, playerID, enemyID, testMove, *nextRoundBoard, trialBoard, depth + 1);
+		double moveScore = getMoveScore(board, playerID, enemyID, testMove, *nextRoundBoard, *trialBoard, depth + 1);
 		if (moveScore > bestScore) {
 			bestScore = moveScore;
 		}
 	}
 
-	delete nextRoundBoard;
 	return bestScore;
 };
 
 inline double BirthRandSearch::getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard, int depth) {
 	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
+	assert(trialBoard == *board.makeMove(move, playerID));
 
 	if (depth == maxDepth) {
 		return (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
@@ -227,13 +230,21 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Pl
 //	return MoveAndScore(bestMove, bestScore);
 //}
 
-BirthRandSearch::BirthRandSearch(int maxDepth, int* adversarialTrials) {
-	this->adversarialTrials = adversarialTrials;
-	this->maxDepth = maxDepth;
+BirthRandSearch::BirthRandSearch(int maxDepth, int* adversarialTrials) : maxDepth(maxDepth), adversarialTrials(adversarialTrials),
+trialBoards(new Board*[maxDepth]), nextRoundBoards(new Board*[maxDepth]) {
+	for (int i = 0; i < maxDepth; i++) {
+		trialBoards[i] = NULL;
+		nextRoundBoards[i] = NULL;
+	}
 }
 
 Move BirthRandSearch::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
 	long startTime = Tools::get_time();
+
+	for (int i = 0; i < maxDepth; i++) {
+		if (trialBoards[i] == NULL) trialBoards[i] = new Board(board.getWidth(), board.getHeight());
+		if (nextRoundBoards[i] == NULL) nextRoundBoards[i] = new Board(board.getWidth(), board.getHeight());
+	}
 
 	vector<Coordinate> deadCells = board.GetCells('.');
 	vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
