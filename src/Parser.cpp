@@ -49,7 +49,7 @@ void Parser::ProcessUpdate()
     string cmd = NextCmd();
     if (cmd == "round")
     {
-      bot.SetRound(stoi(NextCmd()));
+      bot.SetRound(stoi(NextCmd()) - 1); // the competition API gives a 1 based index, but SetRound expects a 0 based index
     }
     else if (cmd == "field")
     {
