@@ -14,8 +14,9 @@
 #include <ctime>
 #include <chrono>
 #include <stdio.h>
-#include <cstdio>>
+#include <cstdio>
 #include <assert.h>
+#include <thread>
 #include "Parser.h"
 #include "Bot.h"
 #include "Strategy.h"
@@ -55,7 +56,7 @@ void test() {
 }
 
 void play() {
-	int bot0AdversarialTrials[] = { 3 };
+	int bot0AdversarialTrials[] = { 150 };
 	BirthRandSearch strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot myBot = Bot(&strategy);
 	Parser parser = Parser(myBot);
@@ -76,44 +77,45 @@ int playMatch(Bot bot0, Bot bot1, bool verbose = false) {
 	bot0.SetTimePerMove(timePerMove);
 	bot1.SetTimePerMove(timePerMove);
 
-	for (int round = 0; round < 100 && bot0Time >= 0 && bot1Time >= 0; round++) {
+	for (int round = 0; round < 50 && bot0Time >= 0 && bot1Time >= 0; round++) {
 		if (verbose) cout << board.toString();
 		int P0Count = board.getPlayerCellCount(P0);
 		int P1Count = board.getPlayerCellCount(P1);
 		if (P0Count == 0 && P1Count == 0) return -1; // tie
 		else if (P0Count == 0) return 1;
 		else if (P1Count == 0) return 0;
-
 		Board *boardCopy = board.getCopy();
 		
-		if (round % 2 == 0) {
-			// player 0's turn
-			bot0Time = min(bot0Time + timePerMove, 10000);
-			if (verbose) cout << "bot 0 time: " << bot0Time << "\n";
+		// player 0's turn
+		bot0Time = min(bot0Time + timePerMove, 10000);
+		if (verbose) cout << "bot 0 time: " << bot0Time << "\n";
+		long startTime = Tools::get_time();
+		Move move = bot0.GetMove(bot0Time, round);
+		assert(board == *boardCopy);
+		int dt = Tools::get_time() - startTime;
+		bot0Time -= dt;
+		if (verbose) cout << "Player 0's move: " << move.toString() << " time to compute: " << dt << "\n\n";
+		board.makeMoveOnBoard(move, P0);
 
-			long startTime = Tools::get_time();
-			Move move = bot0.GetMove(bot0Time);
-			assert(board == *boardCopy);
-			int dt = Tools::get_time() - startTime;
-			bot0Time -= dt;
+		if (verbose) cout << board.toString();
+		P0Count = board.getPlayerCellCount(P0);
+		P1Count = board.getPlayerCellCount(P1);
+		if (P0Count == 0 && P1Count == 0) return -1; // tie
+		else if (P0Count == 0) return 1;
+		else if (P1Count == 0) return 0;
+		delete boardCopy;
+		boardCopy = board.getCopy();
 
-			if (verbose) cout << "Player 0's move: " << move.toString() << " time to compute: " << dt << "\n\n";
-			board.makeMoveOnBoard(move, P0);
-		}
-		else {
-			// player 1's turn
-			bot1Time = min(bot1Time + timePerMove, 10000);
-			if (verbose) cout << "bot 1 time: " << bot1Time << "\n";
-
-			long startTime = Tools::get_time();
-			Move move = bot1.GetMove(bot1Time);
-			assert(board == *boardCopy);
-			int dt = Tools::get_time() - startTime;
-			bot1Time -= dt;
-
-			if (verbose) cout << "Player 1's move: " << move.toString() << " time to compute: " << dt << "\n\n";
-			board.makeMoveOnBoard(move, P1);
-		}
+		// player 1's turn
+		bot1Time = min(bot1Time + timePerMove, 10000);
+		if (verbose) cout << "bot 1 time: " << bot1Time << "\n";
+		startTime = Tools::get_time();
+		move = bot1.GetMove(bot1Time, round);
+		assert(board == *boardCopy);
+		dt = Tools::get_time() - startTime;
+		bot1Time -= dt;
+		if (verbose) cout << "Player 1's move: " << move.toString() << " time to compute: " << dt << "\n\n";
+		board.makeMoveOnBoard(move, P1);
 
 		delete boardCopy;
 	}
@@ -160,12 +162,12 @@ void playTournament(Bot bot0, Bot bot1, int rounds = 100, bool verbose = false) 
 }
 
 void playTest() {
-	int bot0AdversarialTrials[] = { 3 };
+	int bot0AdversarialTrials[] = { 200 };
 	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	int bot1AdversarialTrials[] = { 3 };
-	MCDSStrategy bot1Strategy = MCDSStrategy(1, bot1AdversarialTrials);
+	int bot1AdversarialTrials[] = { 150 };
+	BirthRandSearch bot1Strategy = BirthRandSearch(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
 	playTournament(bot0, bot1, 1000);
@@ -176,11 +178,14 @@ int main() {
 	// Initialize random number generator
 	srand(time(NULL));
 
-	//freopen("output.txt", "w", stderr);
+	unsigned availableThreads = thread::hardware_concurrency();
+	//cerr << "available threads: " << availableThreads << "\n";
 
-	playTest();
+	//freopen("cerr_log.txt", "w", stderr);
+
+	//playTest();
 	//test();
-	//play();
+	play();
 
 	_CrtDumpMemoryLeaks();
 }

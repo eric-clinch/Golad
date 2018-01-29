@@ -27,7 +27,7 @@ vector<MoveType> RandomStrategy::GetAvailableMoveTypes(Board &board, Player play
 
 RandomStrategy::RandomStrategy() {}
 
-Move RandomStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
+Move RandomStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {
 	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, playerID, enemyID);
 	int moveType = RandomElementFromVector(availableMoveTypes);
 

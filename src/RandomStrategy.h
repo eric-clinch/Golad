@@ -25,7 +25,7 @@ private:
 
 public:
 	RandomStrategy();
-	Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
+	Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 };
 
 #endif

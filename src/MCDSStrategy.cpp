@@ -357,7 +357,7 @@ MCDSStrategy::MoveAndScore MCDSStrategy::getBestBirthMove(Board &board, Player p
 	return MoveAndScore(resultMove, max_score);
 }
 
-Move MCDSStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
+Move MCDSStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {
 	long startTime = Tools::get_time();
 
 	vector<Coordinate> deadCells = board.GetCells('.');

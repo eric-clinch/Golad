@@ -40,7 +40,7 @@ private:
 
 public:
 	AdversarialStrategy(int adversarialTrials);
-	Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
+	Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 };
 
 #endif

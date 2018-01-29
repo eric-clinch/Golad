@@ -88,7 +88,7 @@ AdversarialStrategy::AdversarialStrategy(int adversarialTrials) {
 	this->adversarialTrials = adversarialTrials;
 }
 
-Move AdversarialStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
+Move AdversarialStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {
 	long startTime = Tools::get_time();
 
 	Board trialBoard(board.getWidth(), board.getHeight());

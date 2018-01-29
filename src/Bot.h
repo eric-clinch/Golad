@@ -21,6 +21,7 @@ private:
 	Player enemyID;
 	int width, height;
 	int maxRounds;
+	int currentRound;
 	int timePerMove;
 	Board *board;
 	string playerName;
@@ -34,10 +35,11 @@ public:
 	virtual void setStrategy(Strategy *strategy);
 
 	// Action
-	virtual Move GetMove(int time);
+	virtual Move GetMove(int time, int round);
 
 	// Update
-	virtual void SetRound(int time);
+	virtual void SetRound(int round);
+	virtual int GetRound();
 	virtual Board* GetBoard();
 	virtual void SetBoard(Board *board);
 

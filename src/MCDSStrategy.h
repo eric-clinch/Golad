@@ -52,7 +52,7 @@ private:
 
 public:
 	MCDSStrategy(int maxDepth, double confidenceConstant = 2.0);
-	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
+	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 };
 
 #endif

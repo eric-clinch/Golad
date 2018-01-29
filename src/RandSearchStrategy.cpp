@@ -51,7 +51,7 @@ inline int RandSearchStrategy::getMoveScore(Board &board, Player playerID, Playe
 
 RandSearchStrategy::RandSearchStrategy() {}
 
-Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove) {
+Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {
 	long startTime = Tools::get_time();
 
 	Board trialBoard(board.getWidth(), board.getHeight());

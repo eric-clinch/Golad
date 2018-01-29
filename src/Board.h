@@ -17,6 +17,7 @@
 #include <vector>
 #include <assert.h>
 #include <algorithm>
+#include <math.h>
 #include "Enums.h"
 #include "Coordinate.h"
 #include "Move.h"

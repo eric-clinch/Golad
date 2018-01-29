@@ -11,7 +11,7 @@ using namespace std;
 class Strategy
 {
 public:
-	virtual Move getMove(Board &board, Player playerID, Player enemyID, int totalTime, int timePerMove) = 0;
+	virtual Move getMove(Board &board, Player playerID, Player enemyID, int totalTime, int timePerMove, int round) = 0;
 };
 
 #endif

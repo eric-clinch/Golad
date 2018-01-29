@@ -35,7 +35,7 @@ void Parser::ProcessAction()
 {
 	string cmd = NextCmd();
 	if (cmd == "move") {
-		Move move = bot.GetMove(stoi(NextCmd()));
+		Move move = bot.GetMove(stoi(NextCmd()), bot.GetRound());
 		string st = move.toString();
 		cout << st << "\n";
 	}

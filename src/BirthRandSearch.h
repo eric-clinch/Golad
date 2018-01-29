@@ -36,8 +36,13 @@ private:
 		vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
 
-	virtual double getBestMoveScore(Board &board, Player playerID, Player enemyID, int trials, int depth);
-	virtual inline double getMoveScore(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth);
+	virtual double evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta);
+	virtual inline double getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
+		double alpha, double beta);
+
+	virtual double evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta);
+	virtual inline double getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
+		double alpha, double beta);
 
 	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
 		vector<Coordinate> &myCells, Board &nextRoundBoard);
@@ -46,7 +51,7 @@ private:
 
 public:
 	BirthRandSearch(int maxDepth, int* adversarialTrials);
-	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove);
+	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 };
 
 #endif

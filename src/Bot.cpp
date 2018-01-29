@@ -21,13 +21,19 @@ void Bot::setStrategy(Strategy *strategy) {
 	this->strategy = strategy;
 }
 
-Move Bot::GetMove(int time)
+Move Bot::GetMove(int time, int round)
 {
 	assert(board != NULL);
-	return strategy->getMove(*board, playerID, enemyID, time, timePerMove);
+	return strategy->getMove(*board, playerID, enemyID, time, timePerMove, round);
 }
 
-void Bot::SetRound(int time){};
+void Bot::SetRound(int round){
+	this->currentRound = round;
+};
+
+int Bot::GetRound() {
+	return this->currentRound;
+}
 
 Board* Bot::GetBoard()
 {
