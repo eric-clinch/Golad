@@ -298,7 +298,7 @@ Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, in
 	long startTime = Tools::get_time();
 
 	int roundsRemaining = 100 - round;
-	int timeToUse = timePerMove + (time / roundsRemaining);
+	int timeToUse = timePerMove + (time / roundsRemaining) - 5;
 
 	for (int i = 0; i < maxDepth; i++) {
 		if (trialBoards[i] == NULL) trialBoards[i] = new Board(board.getWidth(), board.getHeight());
