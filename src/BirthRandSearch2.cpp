@@ -56,7 +56,7 @@ Move BirthRandSearch2::getRandomMove(Board &board, Player playerID, Player enemy
 	}
 }
 
-double BirthRandSearch2::evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta) {
+BirthRandSearch2::MoveAndScore BirthRandSearch2::evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta) {
 	assert(alpha < beta);
 	Board *trialBoard = trialBoards[depth];
 	Board *nextRoundBoard = nextRoundBoards[depth];
@@ -68,19 +68,21 @@ double BirthRandSearch2::evaluateBoardMini(Board &board, Player playerID, Player
 	vector<Coordinate> enemyCells = board.GetCells(to_string(playerID).at(0));
 	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, enemyID, playerID);
 
+	Move bestMove = Move();
 	for (int i = 0; i < trials; i++) {
 		Move trialMove = getRandomMove(board, enemyID, playerID, availableMoveTypes, deadCells, myCells, enemyCells);
-		double moveScore = getMoveScoreMini(board, playerID, enemyID, trialMove, *nextRoundBoard, *trialBoard, depth + 1, alpha, beta);
-		if (moveScore < beta) {
-			beta = moveScore;
+		MoveAndScore moveScore = getMoveScoreMini(board, playerID, enemyID, trialMove, *nextRoundBoard, *trialBoard, depth + 1, alpha, beta);
+		if (moveScore.score < beta) {
+			beta = moveScore.score;
+			bestMove = trialMove;
 			if (beta <= alpha) break; // prune
 		}
 	}
 
-	return beta;
+	return MoveAndScore(bestMove, beta);
 };
 
-double BirthRandSearch2::evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta) {
+BirthRandSearch2::MoveAndScore BirthRandSearch2::evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta) {
 	assert(alpha < beta);
 	Board *trialBoard = trialBoards[depth];
 	Board *nextRoundBoard = nextRoundBoards[depth];
@@ -92,44 +94,48 @@ double BirthRandSearch2::evaluateBoardMaxi(Board &board, Player playerID, Player
 	vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
 	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, playerID, enemyID);
 
+	Move bestMove = Move();
 	for (int i = 0; i < trials; i++) {
 		Move trialMove = getRandomMove(board, playerID, enemyID, availableMoveTypes, deadCells, myCells, enemyCells);
-		double moveScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, *nextRoundBoard, *trialBoard, depth + 1, alpha, beta);
-		if (moveScore > alpha) {
-			alpha = moveScore;
+		MoveAndScore moveScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, *nextRoundBoard, *trialBoard, depth + 1, alpha, beta);
+		if (moveScore.score > alpha) {
+			alpha = moveScore.score;
+			bestMove = trialMove;
 			if (beta <= alpha) break; // prune
 		}
 	}
 
-	return alpha;
+	return MoveAndScore(bestMove, alpha);
 };
 
-inline double BirthRandSearch2::getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard,
+inline BirthRandSearch2::MoveAndScore BirthRandSearch2::getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard,
 												 int depth, double alpha, double beta) {
 	assert(alpha < beta);
 	board.applyMove(move, enemyID, nextRoundBoard, trialBoard);
 	assert(trialBoard == *board.makeMove(move, enemyID));
-	if (trialBoard.getPlayerCellCount(playerID) == 0) return -max_score;
-	else if (trialBoard.getPlayerCellCount(enemyID) == 0) return max_score;
+	if (trialBoard.getPlayerCellCount(playerID) == 0) return MoveAndScore(Move(), -max_score);
+	else if (trialBoard.getPlayerCellCount(enemyID) == 0) return MoveAndScore(Move(), max_score);
 
 	if (depth == maxDepth) {
-		return (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
+		double score = (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
+		return MoveAndScore(Move(), score);
 	}
 	else {
 		return evaluateBoardMaxi(trialBoard, playerID, enemyID, adversarialTrials[depth], depth, alpha, beta);
 	}
 }
 
-inline double BirthRandSearch2::getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard, 
+inline BirthRandSearch2::MoveAndScore BirthRandSearch2::getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &trialBoard,
 												 int depth, double alpha, double beta) {
 	assert(alpha < beta);
 	board.applyMove(move, playerID, nextRoundBoard, trialBoard);
 	assert(trialBoard == *board.makeMove(move, playerID));
-	if (trialBoard.getPlayerCellCount(playerID) == 0) return -max_score;
-	else if (trialBoard.getPlayerCellCount(enemyID) == 0) return max_score;
+	if (trialBoard.getPlayerCellCount(playerID) == 0) return MoveAndScore(Move(), -max_score);
+	else if (trialBoard.getPlayerCellCount(enemyID) == 0) return MoveAndScore(Move(), max_score);
 	
 	if (depth == maxDepth) {
-		return (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
+		double score = (double)trialBoard.getPlayerCellCount(playerID) / trialBoard.getPlayerCellCount(enemyID);
+		return MoveAndScore(Move(), score);
 	}
 	else {
 		return evaluateBoardMini(trialBoard, playerID, enemyID, adversarialTrials[depth], depth, alpha, beta);
@@ -137,26 +143,23 @@ inline double BirthRandSearch2::getMoveScoreMaxi(Board &board, Player playerID, 
 }
 
 BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, 
-																 vector<Coordinate> &myCells, Board &nextRoundBoard) {
-
+																 vector<Coordinate> &myCells, Board &nextRoundBoard, double alpha, double beta) {
+	assert(alpha < beta);
 	Board emptyBoard(board.getWidth(), board.getHeight());
 
-	double alpha = -max_score;
-	double beta = max_score;
-
 	Move bestMove = Move();
-	double moveScore = getMoveScoreMaxi(board, playerID, enemyID, bestMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
+	MoveAndScore moveScore = getMoveScoreMaxi(board, playerID, enemyID, bestMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
 	assert(moveScore >= alpha);
-	alpha = moveScore;
-	if (beta <= alpha) return MoveAndScore(bestMove, moveScore); // prune
+	alpha = moveScore.score;
+	if (beta <= alpha) return MoveAndScore(bestMove, moveScore.score); // prune
 
 	int numMyCells = myCells.size();
 	for (int i = 0; i < numMyCells; i++) {
 		Coordinate myCell = myCells[i];
 		Move trialMove = Move(myCell);
-		double trialMoveScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
-		if (trialMoveScore > alpha) {
-			alpha = trialMoveScore;
+		MoveAndScore trialMoveScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
+		if (trialMoveScore.score > alpha) {
+			alpha = trialMoveScore.score;
 			bestMove = trialMove;
 			if (beta <= alpha) return MoveAndScore(bestMove, alpha);
 		}
@@ -166,9 +169,9 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, P
 	for (int i = 0; i < numEnemyCells; i++) {
 		Coordinate enemyCell = enemyCells[i];
 		Move trialMove = Move(enemyCell);
-		double trialMoveScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
-		if (trialMoveScore > alpha) {
-			alpha = trialMoveScore;
+		MoveAndScore trialMoveScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
+		if (trialMoveScore.score > alpha) {
+			alpha = trialMoveScore.score;
 			bestMove = trialMove;
 			if (beta <= alpha) return MoveAndScore(bestMove, alpha);
 		}
@@ -178,19 +181,17 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestKillMove(Board &board, P
 }
 
 BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, Player playerID, Player enemyID, 
-	vector<Coordinate> &deadCellsVect, vector<Coordinate> &myCellsVect, Board &nextRoundBoard, int time) {
+	vector<Coordinate> &deadCellsVect, vector<Coordinate> &myCellsVect, Board &nextRoundBoard, double alpha, double beta, int time) {
+	assert(alpha < beta);
 	long startTime = Tools::get_time();
-
-	double alpha = -max_score;
-	double beta = max_score;
 
 	Board emptyBoard(board.getWidth(), board.getHeight());
 
 	if (board.getPlayerCellCount(playerID) < 2) {
 		// not possible to birth, so just pass
 		Move passMove = Move();
-		double passScore = getMoveScoreMaxi(board, playerID, enemyID, passMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
-		return MoveAndScore(passMove, passScore);
+		MoveAndScore passScore = getMoveScoreMaxi(board, playerID, enemyID, passMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
+		return MoveAndScore(passMove, passScore.score);
 	}
 
 	RandomVector<Coordinate> deadCells(deadCellsVect);
@@ -200,10 +201,10 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 	Coordinate sacrifice1 = myCells.pop_back();
 	Coordinate sacrifice2 = myCells.pop_back();
 	Move bestMove = Move(target, sacrifice1, sacrifice2);
-	double moveScore = getMoveScoreMaxi(board, playerID, enemyID, bestMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
+	MoveAndScore moveScore = getMoveScoreMaxi(board, playerID, enemyID, bestMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
 	assert(moveScore >= alpha);
-	alpha = moveScore;
-	if (beta <= alpha) return MoveAndScore(bestMove, moveScore); // prune
+	alpha = moveScore.score;
+	if (beta <= alpha) return MoveAndScore(bestMove, alpha); // prune
 
 	int myRemainingCells = myCells.size();
 	int trials = 0;
@@ -212,10 +213,10 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 		assert(alpha < beta);
 		Coordinate newTarget = deadCells.pop_back();
 		Move trialMove = Move(newTarget, sacrifice1, sacrifice2);
-		double trialScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
+		MoveAndScore trialScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
 		
-		if (trialScore > alpha) {
-			alpha = trialScore;
+		if (trialScore.score > alpha) {
+			alpha = trialScore.score;
 			bestMove = trialMove;
 			if (alpha >= beta) break; // prune
 			deadCells.push_back(target);
@@ -231,8 +232,8 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 			Coordinate newSacrifice1 = myCells.pop_back();
 			trialMove = Move(target, newSacrifice1, sacrifice2);
 			trialScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
-			if (trialScore > alpha) {
-				alpha = trialScore;
+			if (trialScore.score > alpha) {
+				alpha = trialScore.score;
 				bestMove = trialMove;
 				if (alpha >= beta) break; // prune
 				myCells.push_back(sacrifice1);
@@ -243,8 +244,8 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 			Coordinate newSacrifice2 = myCells.pop_back();
 			trialMove = Move(target, sacrifice1, newSacrifice2);
 			trialScore = getMoveScoreMaxi(board, playerID, enemyID, trialMove, nextRoundBoard, emptyBoard, 0, alpha, beta);
-			if (trialScore > alpha) {
-				alpha = trialScore;
+			if (trialScore.score > alpha) {
+				alpha = trialScore.score;
 				bestMove = trialMove;
 				if (alpha >= beta) break; // prune
 				myCells.push_back(sacrifice2);
@@ -253,7 +254,7 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 			else myCells.push_back(newSacrifice2);
 		}
 	}
-	//cerr << "BirthRandSearch2 trials: " << trials << "\n";
+	cerr << "BirthRandSearch2 trials: " << trials << "\n";
 	return MoveAndScore(bestMove, alpha);
 }
 
@@ -298,7 +299,7 @@ Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, in
 	long startTime = Tools::get_time();
 
 	int roundsRemaining = 100 - round;
-	int timeToUse = timePerMove + (time / roundsRemaining) - 5;
+	int timeToUse = min(timePerMove + (time / roundsRemaining), time) - 5;
 
 	for (int i = 0; i < maxDepth; i++) {
 		if (trialBoards[i] == NULL) trialBoards[i] = new Board(board.getWidth(), board.getHeight());
@@ -312,10 +313,17 @@ Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, in
 
 	Board emptyBoard(board.getWidth(), board.getHeight());
 
-	MoveAndScore bestKillMove = getBestKillMove(board, playerID, enemyID, enemyCells, myCells, *nextRoundBoard);
+	double alpha = -max_score;
+	double beta = max_score;
 
-	int dt = Tools::get_time() - startTime;
-	MoveAndScore bestBirthMove = getBestBirthMove(board, playerID, enemyID, deadCells, myCells, *nextRoundBoard, timeToUse - dt);
+	MoveAndScore bestKillMove = getBestKillMove(board, playerID, enemyID, enemyCells, myCells, *nextRoundBoard, alpha, beta);
+	if (bestKillMove.score > alpha) {
+		alpha = bestKillMove.score;
+		if (alpha >= beta) return bestKillMove.move;
+	}
+
+	int timeUsed = Tools::get_time() - startTime;
+	MoveAndScore bestBirthMove = getBestBirthMove(board, playerID, enemyID, deadCells, myCells, *nextRoundBoard, alpha, beta, timeToUse - timeUsed);
 
 	delete nextRoundBoard;
 

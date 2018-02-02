@@ -36,18 +36,18 @@ private:
 		vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
 
-	virtual double evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta);
-	virtual inline double getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth, 
+	virtual MoveAndScore evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta);
+	virtual inline MoveAndScore getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
 									   double alpha, double beta);
 
-	virtual double evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta);
-	virtual inline double getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
+	virtual MoveAndScore evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta);
+	virtual inline MoveAndScore getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
 		double alpha, double beta);
 
 	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells, 
-										 vector<Coordinate> &myCells, Board &nextRoundBoard);
+										 vector<Coordinate> &myCells, Board &nextRoundBoard, double alpha, double beta);
 	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, vector<Coordinate> &myCells,
-										  Board &nextRoundBoard, int time);
+										  Board &nextRoundBoard, double alpha, double beta, int time);
 
 public:
 	BirthRandSearch2(int maxDepth, int* adversarialTrials);
