@@ -10,8 +10,8 @@
 #define NDEBUG
 #endif
 
-#ifndef BirthRandSearch2_h
-#define BirthRandSearch2_h
+#ifndef BirthRandSearchKiller_h
+#define BirthRandSearchKiller_h
 
 #include <assert.h>
 #include "Strategy.h"
@@ -20,7 +20,7 @@
 #include "Tools.h"
 #include "RandomVector.h"
 
-class BirthRandSearch2 : public Strategy
+class BirthRandSearchKiller : public Strategy
 {
 private:
 	static double max_score;
@@ -35,25 +35,27 @@ private:
 	virtual inline Move getTrialMove(vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells, int i);
 	virtual inline Move getRandomBirth(vector<Coordinate> &deadCells, vector<Coordinate> &myCells);
 	virtual Move getRandomMove(vector<MoveType> &availableMoveTypes, vector<Coordinate> &deadCells,
-		vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
+							   vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	virtual vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
 
-	virtual MoveAndScore evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta, Move &killerMove);
-	virtual inline MoveAndScore getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
-		double alpha, double beta, Move &killerMove);
+	virtual double evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, 
+									 double alpha, double beta, vector<Move> &killerMoves);
+	virtual inline double getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
+		double alpha, double beta, vector<Move> &killerMoves);
 
-	virtual MoveAndScore evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, double alpha, double beta, Move &killerMove);
-	virtual inline MoveAndScore getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
-		double alpha, double beta, Move &killerMove);
+	virtual double evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, 
+									 double alpha, double beta, vector<Move> &killerMoves);
+	virtual inline double getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
+										   double alpha, double beta, vector<Move> &killerMoves);
 
 	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
 		vector<Coordinate> &myCells, Board &nextRoundBoard);
-	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells,
+	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells, 
 		vector<Coordinate> &myCells, Board &nextRoundBoard, int time);
 
 public:
-	BirthRandSearch2(int maxDepth, int* adversarialTrials);
-	~BirthRandSearch2();
+	BirthRandSearchKiller(int maxDepth, int* adversarialTrials);
+	~BirthRandSearchKiller();
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 };
 

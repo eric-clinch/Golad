@@ -25,6 +25,7 @@
 #include "AdversarialStrategy.h"
 #include "BirthRandSearch.h"
 #include "BirthRandSearch2.h"
+#include "BirthRandSearchKiller.h"
 #include "MCDSStrategy.h"
 #include "Board.h"
 #include "Tools.h"
@@ -162,15 +163,15 @@ void playTournament(Bot bot0, Bot bot1, int rounds = 100, bool verbose = false) 
 }
 
 void playTest() {
-	int bot0AdversarialTrials[] = { 200 };
-	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
+	int bot0AdversarialTrials[] = { 100, 5 };
+	BirthRandSearchKiller bot0Strategy = BirthRandSearchKiller(2, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	int bot1AdversarialTrials[] = { 150 };
-	BirthRandSearch bot1Strategy = BirthRandSearch(1, bot1AdversarialTrials);
+	int bot1AdversarialTrials[] = { 100, 5 };
+	BirthRandSearchKiller bot1Strategy = BirthRandSearchKiller(2, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
-	playTournament(bot0, bot1, 1000);
+	playTournament(bot0, bot1, 2);
 	//playMatch(bot0, bot1, true);
 }
 
@@ -183,9 +184,10 @@ int main() {
 
 	//freopen("cerr_log.txt", "w", stderr);
 
-	//playTest();
+	playTest();
 	//test();
-	play();
-
+	//play();
+	
+	delete Board::simulationLookupTable;
 	_CrtDumpMemoryLeaks();
 }

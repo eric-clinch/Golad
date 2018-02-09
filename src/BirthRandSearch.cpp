@@ -253,7 +253,7 @@ BirthRandSearch::MoveAndScore BirthRandSearch::getBestBirthMove(Board &board, Pl
 			else myCells.push_back(newSacrifice2);
 		}
 	}
-	//cerr << "BirthRandSearch trials: " << trials << "\n";
+	cerr << "BirthRandSearch trials: " << trials << "\n";
 	return MoveAndScore(bestMove, alpha);
 }
 
@@ -292,6 +292,15 @@ trialBoards(new Board*[maxDepth]), nextRoundBoards(new Board*[maxDepth]) {
 		trialBoards[i] = NULL;
 		nextRoundBoards[i] = NULL;
 	}
+}
+
+BirthRandSearch::~BirthRandSearch() {
+	for (int i = 0; i < maxDepth; i++) {
+		if (trialBoards[i] != NULL) delete trialBoards[i];
+		if (nextRoundBoards[i] != NULL) delete nextRoundBoards[i];
+	}
+	delete trialBoards;
+	delete nextRoundBoards;
 }
 
 Move BirthRandSearch::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {

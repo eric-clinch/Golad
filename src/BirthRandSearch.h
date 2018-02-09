@@ -51,6 +51,7 @@ private:
 
 public:
 	BirthRandSearch(int maxDepth, int* adversarialTrials);
+	~BirthRandSearch();
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 };
 
