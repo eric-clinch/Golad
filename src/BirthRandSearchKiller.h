@@ -14,11 +14,13 @@
 #define BirthRandSearchKiller_h
 
 #include <assert.h>
+#include <math.h>
 #include "Strategy.h"
 #include "Move.h"
 #include "Coordinate.h"
 #include "Tools.h"
 #include "RandomVector.h"
+#include "LinkedList.h"
 
 class BirthRandSearchKiller : public Strategy
 {
@@ -29,24 +31,24 @@ private:
 	int *adversarialTrials;
 	Board **trialBoards;
 	Board **nextRoundBoards;
+	LinkedList<Move> **killerMovesByRound;
 
 	struct MoveAndScore;
 
-	virtual inline Move getTrialMove(vector<Coordinate> &deadCells, vector<Coordinate> &myCells, vector<Coordinate> &enemyCells, int i);
 	virtual inline Move getRandomBirth(vector<Coordinate> &deadCells, vector<Coordinate> &myCells);
 	virtual Move getRandomMove(vector<MoveType> &availableMoveTypes, vector<Coordinate> &deadCells,
 							   vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
 	virtual vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
 
 	virtual double evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth, 
-									 double alpha, double beta, vector<Move> &killerMoves);
+									 double alpha, double beta);
 	virtual inline double getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
-		double alpha, double beta, vector<Move> &killerMoves);
+		double alpha, double beta);
 
 	virtual double evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth, 
-									 double alpha, double beta, vector<Move> &killerMoves);
+									 double alpha, double beta);
 	virtual inline double getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
-										   double alpha, double beta, vector<Move> &killerMoves);
+										   double alpha, double beta);
 
 	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
 		vector<Coordinate> &myCells, Board &nextRoundBoard);
