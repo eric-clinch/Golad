@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <cstdio>
 #include <assert.h>
-#include <thread>
 #include <math.h>
 #include "Parser.h"
 #include "Bot.h"
@@ -45,27 +44,13 @@ void printArray(int **a, int rows, int cols) {
 	cout << "\n";
 }
 
-void printList(LinkedList<int> &a) {
-	for (Node<int> *current = a.getFront(); current->next != NULL; current = current->next) {
-		cout << current->element << " ";
-	}
-	cout << "\n";
-}
-
 void test() {
-	cout << Stats::normalCDF(0) << "\n";
-	cout << Stats::normalCDF(.1) << "\n";
-	cout << Stats::normalCDF(.2) << "\n";
-	cout << Stats::normalCDF(.3) << "\n";
-	cout << Stats::normalCDF(-.1) << "\n";
-	cout << Stats::normalCDF(-.2) << "\n";
-	cout << Stats::normalCDF(-.3) << "\n";
-	cout << Stats::getProbabilitySuccessfulBernoulli(21, 40);
+
 }
 
 void play() {
-	int bot0AdversarialTrials[] = { 300, 10 };
-	BirthRandSearch strategy = BirthRandSearch(2, bot0AdversarialTrials);
+	int bot0AdversarialTrials[] = { 600 };
+	BirthRandSearch2 strategy = BirthRandSearch2(1, bot0AdversarialTrials);
 	Bot myBot = Bot(&strategy);
 	Parser parser = Parser(myBot);
 	parser.Parse();
@@ -165,23 +150,22 @@ void playTournament(Bot bot0, Bot bot1, int rounds = 100, bool verbose = false) 
 			int numSamples = currentRound - ties;
 			if (numSamples > 30) { // if the Central Limit Theorem Applies
 				double probabilityBot1IsBetter = Stats::getProbabilitySuccessfulBernoulli(bot1Wins, numSamples);
-				cout << "probability that bot 0 is better: " << 100 * (1 - probabilityBot1IsBetter) << "%\n";
+				double probabilityBot0IsBetter = 1 - probabilityBot1IsBetter;
+				cout << "probability that bot 0 is better: " << 100 * probabilityBot0IsBetter << "%\n";
 				cout << "probability that bot 1 is better: " << 100 * probabilityBot1IsBetter << "%\n";
+				if (probabilityBot0IsBetter > .995 || probabilityBot1IsBetter > .995) break; // the tournament is complete at this point
 			}
 		}
 	}
-
-	int ties = rounds - bot0Wins - bot1Wins;
-	cout << "bot 0 wins: " << bot0Wins << "\nbot 1 wins: " << bot1Wins << "\nties: " << ties << "\n";
 }
 
 void playTest() {
-	int bot0AdversarialTrials[] = { 300, 10 };
+	int bot0AdversarialTrials[] = { 600 };
 	BirthRandSearch bot0Strategy = BirthRandSearch(1, bot0AdversarialTrials);
 	Bot bot0 = Bot(&bot0Strategy);
 
-	int bot1AdversarialTrials[] = { 300, 10 }; // best so far
-	BirthRandSearch bot1Strategy = BirthRandSearch(2, bot1AdversarialTrials);
+	int bot1AdversarialTrials[] = { 600 };
+	BirthRandSearch2 bot1Strategy = BirthRandSearch2(1, bot1AdversarialTrials);
 	Bot bot1 = Bot(&bot1Strategy);
 
 	playTournament(bot0, bot1, 1000);
@@ -192,14 +176,14 @@ int main() {
 	// Initialize random number generator
 	srand(time(NULL));
 
-	unsigned availableThreads = thread::hardware_concurrency();
+	//unsigned availableThreads = thread::hardware_concurrency();
 	//cerr << "available threads: " << availableThreads << "\n";
 
-	freopen("cerr_log.txt", "w", stderr);
+	//freopen("cerr_log.txt", "w", stderr);
 
-	playTest();
+	//playTest();
 	//test();
-	//play();
+	play();
 	
 	delete Board::simulationLookupTable;
 	_CrtDumpMemoryLeaks();

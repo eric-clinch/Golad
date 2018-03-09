@@ -19,6 +19,7 @@ struct BirthRandSearch2::Data {
 	Player playerID;
 	Player enemyID;
 	int maxDepth;
+	int *adversarialTrials;
 	Board **trialBoards;
 	Board **nextRoundBoards;
 	LinkedList<Move> **killerMovesByRound;
@@ -27,6 +28,7 @@ struct BirthRandSearch2::Data {
 		this->playerID = playerID;
 		this->enemyID = enemyID;
 		this->maxDepth = maxDepth;
+		this->adversarialTrials = adversarialTrials;
 
 		trialBoards = new Board*[maxDepth];
 		nextRoundBoards = new Board*[maxDepth];
@@ -50,6 +52,27 @@ struct BirthRandSearch2::Data {
 		delete trialBoards;
 		delete nextRoundBoards;
 		delete killerMovesByRound;
+	}
+};
+
+struct BirthRandSearch2::ABMArgs {
+	Board *board;
+	Player playerID;
+	Player enemyID;
+	int time;
+	MoveAndScore *result;
+
+	int maxDepth;
+	int *adversarialTrials;
+
+	ABMArgs(Board *board, Player playerID, Player enemyID, int time, MoveAndScore *result, int maxDepth, int *adversarialTrials) {
+		this->board = board;
+		this->playerID = playerID;
+		this->enemyID = enemyID;
+		this->time = time;
+		this->result = result;
+		this->maxDepth = maxDepth;
+		this->adversarialTrials = adversarialTrials;
 	}
 };
 
@@ -113,7 +136,7 @@ double BirthRandSearch2::evaluateBoardMini(Board &board, int depth, Data &data, 
 	vector<Coordinate> enemyCells = board.GetCells(to_string(data.playerID).at(0));
 	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, data.enemyID, data.playerID);
 
-	int maxTrials = adversarialTrials[depth];
+	int maxTrials = data.adversarialTrials[depth];
 	int numTrials = 0;
 	for (Node<Move> *currentNode = killerMoves->getFront(); currentNode->next != NULL; currentNode = currentNode->next) {
 		Move killerMove = currentNode->element;
@@ -159,7 +182,7 @@ double BirthRandSearch2::evaluateBoardMaxi(Board &board, int depth, Data &data, 
 	vector<Coordinate> enemyCells = board.GetCells(to_string(data.enemyID).at(0));
 	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, data.playerID, data.enemyID);
 
-	int maxTrials = adversarialTrials[depth];
+	int maxTrials = data.adversarialTrials[depth];
 	int numTrials = 0;
 	for (Node<Move> *currentNode = killerMoves->getFront(); currentNode->next != NULL; currentNode = currentNode->next) {
 		Move killerMove = currentNode->element;
@@ -200,7 +223,7 @@ inline double BirthRandSearch2::getMoveScoreMini(Board &board, Move &move, Board
 	if (trialBoard.getPlayerCellCount(data.playerID) == 0) return -max_score;
 	else if (trialBoard.getPlayerCellCount(data.enemyID) == 0) return max_score;
 
-	if (depth == maxDepth) {
+	if (depth == data.maxDepth) {
 		double score = (double)trialBoard.getPlayerCellCount(data.playerID) / trialBoard.getPlayerCellCount(data.enemyID);
 		return score;
 	}
@@ -217,7 +240,7 @@ inline double BirthRandSearch2::getMoveScoreMaxi(Board &board, Move &move, Board
 	if (trialBoard.getPlayerCellCount(data.playerID) == 0) return -max_score;
 	else if (trialBoard.getPlayerCellCount(data.enemyID) == 0) return max_score;
 
-	if (depth == maxDepth) {
+	if (depth == data.maxDepth) {
 		double score = (double)trialBoard.getPlayerCellCount(data.playerID) / trialBoard.getPlayerCellCount(data.enemyID);
 		return score;
 	}
@@ -341,31 +364,65 @@ BirthRandSearch2::MoveAndScore BirthRandSearch2::getBestBirthMove(Board &board, 
 	return MoveAndScore(bestMove, alpha);
 }
 
+void *BirthRandSearch2::approximateBestMove(void *voidArg) {
+	long startTime = Tools::get_time();
+
+	ABMArgs arg = *(ABMArgs*) voidArg;
+
+	Board *board = arg.board;
+	Player playerID = arg.playerID;
+	Player enemyID = arg.enemyID;
+	int time = arg.time;
+	MoveAndScore *result = arg.result;
+
+	vector<Coordinate> deadCells = board->GetCells('.');
+	vector<Coordinate> myCells = board->GetCells(to_string(playerID).at(0));
+	vector<Coordinate> enemyCells = board->GetCells(to_string(enemyID).at(0));
+	Board *nextRoundBoard = board->getNextRoundBoard();
+
+	Data data(playerID, enemyID, board->getWidth(), board->getHeight(), arg.maxDepth, arg.adversarialTrials);
+
+	MoveAndScore bestKillMove = getBestKillMove(*board, enemyCells, myCells, *nextRoundBoard, data);
+	if (bestKillMove.score >= max_score) {
+		*result = bestKillMove;
+		return NULL; // prune
+	}
+
+	int timeUsed = Tools::get_time() - startTime;
+	MoveAndScore bestBirthMove = getBestBirthMove(*board, deadCells, myCells, *nextRoundBoard, data, time - timeUsed);
+
+	delete nextRoundBoard;
+
+	*result = bestBirthMove.score >= bestKillMove.score ? bestBirthMove : bestKillMove;
+	return NULL;
+}
+
 BirthRandSearch2::BirthRandSearch2(int maxDepth, int* adversarialTrials) : maxDepth(maxDepth), adversarialTrials(adversarialTrials) {}
 
 BirthRandSearch2::~BirthRandSearch2() {}
 
 Move BirthRandSearch2::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {
-	long startTime = Tools::get_time();
+	int roundsRemaining = 100 - round; // the maximum number of rounds that will be played after this round
+	int extraTimeGiven = roundsRemaining * timePerMove;
+	int timeToUse = (time + extraTimeGiven) / (roundsRemaining + 1);
+	timeToUse -= 10;
 
-	int roundsRemaining = 100 - round;
-	int timeToUse = min(timePerMove + (time / roundsRemaining), time) - 5;
+	cerr << "round: " << round << "\n";
 
-	vector<Coordinate> deadCells = board.GetCells('.');
-	vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
-	vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
-	Board *nextRoundBoard = board.getNextRoundBoard();
+	MoveAndScore *bestMoveAndScore1 = new MoveAndScore(Move(), 0);
+	MoveAndScore *bestMoveAndScore2 = new MoveAndScore(Move(), 0);
 
-	Board emptyBoard(board.getWidth(), board.getHeight());
-	Data data(playerID, enemyID, board.getWidth(), board.getHeight(), maxDepth, adversarialTrials);
+	Board *copied = board.getCopy();
+	ABMArgs thread1Arg(copied, playerID, enemyID, timeToUse, bestMoveAndScore1, maxDepth, adversarialTrials);
+	pthread_t thread1;
+	pthread_create(&thread1, NULL, &approximateBestMove, (void*) &thread1Arg);
 
-	MoveAndScore bestKillMove = getBestKillMove(board, enemyCells, myCells, *nextRoundBoard, data);
-	if (bestKillMove.score >= max_score) return bestKillMove.move;
-
-	int timeUsed = Tools::get_time() - startTime;
-	MoveAndScore bestBirthMove = getBestBirthMove(board, deadCells, myCells, *nextRoundBoard, data, timeToUse - timeUsed);
-
-	delete nextRoundBoard;
-
-	return bestBirthMove.score >= bestKillMove.score ? bestBirthMove.move : bestKillMove.move;
+	ABMArgs thread2Arg(&board, playerID, enemyID, timeToUse, bestMoveAndScore2, maxDepth, adversarialTrials);
+	approximateBestMove((void*) &thread2Arg);
+	pthread_join(thread1, NULL);
+	
+	Move bestMove = bestMoveAndScore1->score > bestMoveAndScore2->score ? bestMoveAndScore1->move : bestMoveAndScore2->move;
+	delete bestMoveAndScore1;
+	delete bestMoveAndScore2;
+	return bestMove;
 }

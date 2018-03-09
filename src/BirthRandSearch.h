@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <math.h>
+#include <pthread.h>
 #include "Strategy.h"
 #include "Move.h"
 #include "Coordinate.h"
@@ -29,31 +30,29 @@ private:
 	int maxDepth;
 	// len(adversarial) needs to be equal to maxDepth
 	int *adversarialTrials;
-	Board **trialBoards;
-	Board **nextRoundBoards;
-	LinkedList<Move> **killerMovesByRound;
 
+	// stores a move and its assigned score from the minimax algorithm
 	struct MoveAndScore;
+	// stores data that is passed around the minimax algorithm, like the current player and enemy IDs, killer moves, and boards to be used
+	struct Data;
+	// stores arguments for the approximateBestMove method, so that the method can be called with a single argument and thus can be
+	// called in parallel using pthreads
+	struct ABMArgs;
 
-	virtual inline Move getRandomBirth(vector<Coordinate> &deadCells, vector<Coordinate> &myCells);
-	virtual Move getRandomMove(vector<MoveType> &availableMoveTypes, vector<Coordinate> &deadCells,
+	static inline Move getRandomBirth(vector<Coordinate> &deadCells, vector<Coordinate> &myCells);
+	static Move getRandomMove(vector<MoveType> &availableMoveTypes, vector<Coordinate> &deadCells,
 		vector<Coordinate> &myCells, vector<Coordinate> &enemyCells);
-	virtual vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
+	static vector<MoveType> GetAvailableMoveTypes(Board &board, Player playerID, Player enemyID);
 
-	virtual double evaluateBoardMini(Board &board, Player playerID, Player enemyID, int trials, int depth,
-		double alpha, double beta);
-	virtual inline double getMoveScoreMini(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
-		double alpha, double beta);
+	static double evaluateBoardMini(Board &board, int depth, Data &data, double alpha, double beta);
+	static inline double getMoveScoreMini(Board &board, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth, Data &data, double alpha, double beta);
 
-	virtual double evaluateBoardMaxi(Board &board, Player playerID, Player enemyID, int trials, int depth,
-		double alpha, double beta);
-	virtual inline double getMoveScoreMaxi(Board &board, Player playerID, Player enemyID, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth,
-		double alpha, double beta);
+	static double evaluateBoardMaxi(Board &board, int depth, Data &data, double alpha, double beta);
+	static inline double getMoveScoreMaxi(Board &board, Move &move, Board &nextRoundBoard, Board &empytBoard, int depth, Data &data, double alpha, double beta);
 
-	virtual MoveAndScore getBestKillMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &enemyCells,
-		vector<Coordinate> &myCells, Board &nextRoundBoard);
-	virtual MoveAndScore getBestBirthMove(Board &board, Player playerID, Player enemyID, vector<Coordinate> &deadCells,
-		vector<Coordinate> &myCells, Board &nextRoundBoard, int time);
+	static MoveAndScore getBestKillMove(Board &board, vector<Coordinate> &enemyCells, vector<Coordinate> &myCells, Board &nextRoundBoard, Data &data);
+	static MoveAndScore getBestBirthMove(Board &board, vector<Coordinate> &deadCells, vector<Coordinate> &myCells, Board &nextRoundBoard, Data &data, int time);
+	static void *approximateBestMove(void *arg);
 
 public:
 	BirthRandSearch(int maxDepth, int* adversarialTrials);
