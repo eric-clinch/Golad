@@ -13,7 +13,17 @@ public:
 	Coordinate();
     Coordinate(int x, int y);
     virtual string toString();
+	virtual string toString() const;
 	virtual bool operator== (Coordinate &other);
+	virtual bool operator== (const Coordinate &other) const;
 };
+
+namespace std {
+	template<> struct hash<Coordinate> {
+		size_t operator()(const Coordinate &c) const {
+			return (19 + c.x) * 19 + c.y;
+		}
+	};
+}
 
 #endif
