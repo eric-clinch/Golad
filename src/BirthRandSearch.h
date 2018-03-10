@@ -23,8 +23,7 @@
 #include "RandomVector.h"
 #include "LinkedList.h"
 
-class BirthRandSearch : public Strategy
-{
+class BirthRandSearch : public Strategy {
 private:
 	static double max_score;
 	int maxDepth;
