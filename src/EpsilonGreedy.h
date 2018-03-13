@@ -1,6 +1,6 @@
 
 #ifndef EPSILONGREEDY_h
-#define EPSIILONGREEDY_h
+#define EPSILONGREEDY_h
 
 #include <assert.h>
 #include <random>
@@ -47,6 +47,37 @@ public:
 			int randomIndex = uniformIntDistribution(generator);
 			return randomIndex;
 		}
+	}
+
+	int getChoice(vector<UtilityNode<T>*> &nodes, int numTrials) {
+		int numNodes = nodes.size();
+		assert(numNodes > 0);
+		if (uniformRealDistribution(generator) < epsilon) { // greedy case
+			int result = 0;
+			UtilityNode<T> *node = nodes[result];
+			float maxUtility = node->getAverageUtility();
+
+			for (int i = 1; i < numNodes; i++) {
+				UtilityNode<T> *node = nodes[i];
+				float utility = node->getAverageUtility();
+				if (utility > maxUtility) {
+					result = i;
+					maxUtility = utility;
+				}
+			}
+			return result;
+		}
+		else { // random case
+			uniform_int_distribution<int> uniformIntDistribution(0, numNodes - 1);
+			int randomIndex = uniformIntDistribution(generator);
+			return randomIndex;
+		}
+	}
+
+	string toString() {
+		ostringstream stringStream;
+		stringStream << "EpsilonGreedy(" << epsilon << ")";
+		return stringStream.str();
 	}
 };
 

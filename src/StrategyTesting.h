@@ -2,13 +2,21 @@
 #ifndef STRATEGYTESTING_h
 #define STRATEGYTESTING_h
 
+#include <random>
 #include "Bot.h"
 #include "Tools.h"
 #include "Stats.h"
+#include "UtilityNode.h"
+#include "MAB.h"
+#include "UCB1.h"
+#include "EpsilonGreedy.h"
+#include "Evaluator.h"
+#include "RatioEvaluator.h"
 
 namespace StrategyTesting {
 	int playMatch(Bot bot0, Bot bot1, bool verbose = false);
 	void playTournament(Bot bot0, Bot bot1, int rounds = 100, bool verbose = false);
+	void optimizeParameters(int rounds);
 }
 
 int StrategyTesting::playMatch(Bot bot0, Bot bot1, bool verbose) {
@@ -110,6 +118,185 @@ void StrategyTesting::playTournament(Bot bot0, Bot bot1, int rounds, bool verbos
 				cout << "probability that bot 1 is better: " << 100 * probabilityBot1IsBetter << "%\n";
 				if (probabilityBot0IsBetter > .995 || probabilityBot1IsBetter > .995) break; // the tournament is complete at this point
 			}
+		}
+	}
+}
+
+struct CMABParameters {
+	UtilityNode<MAB<Move>*> *moveMAB;
+	UtilityNode<MAB<Coordinate>*> *coordinateMAB;
+	UtilityNode<float> *greed;
+
+	CMABParameters() {};
+
+	CMABParameters(UtilityNode<MAB<Move>*> *m, UtilityNode<MAB<Coordinate>*> *c, UtilityNode<float> *g){
+		moveMAB = m;
+		coordinateMAB = c;
+		greed = g;
+	}
+
+	void updateUtilities(float utility) {
+		moveMAB->updateUtility(utility);
+		coordinateMAB->updateUtility(utility);
+		greed->updateUtility(utility);
+	}
+};
+
+// removes the element with index i from the given vector and returns
+// the contents of the removed position in O(1).
+// does not preserve ordering of the vector, should only be used on
+// unordered vectors
+template <class T> T remove(vector<T> &v, int i) {
+	// moves the last element into the ith position, and then removes
+	// the last element
+	T res = v[i];
+	v[i] = v.back();
+	v.pop_back();
+	return res;
+}
+
+UtilityNode<CMABParameters> *getParameters(vector<UtilityNode<MAB<Move>*>*> &moveMABs, vector<UtilityNode<MAB<Coordinate>*>*> &coordinateMABs,
+	vector<UtilityNode<float>*> &greeds, vector<UtilityNode<CMABParameters>*> &parameters, default_random_engine &generator, float exploration, int round) {
+	
+	uniform_real_distribution<float> realRandom(0.0, 1.0);
+	float rand = realRandom(generator);
+	if (parameters.size() == 0 || rand < exploration) {
+		random_shuffle(moveMABs.begin(), moveMABs.end());
+		random_shuffle(coordinateMABs.begin(), coordinateMABs.end());
+		random_shuffle(greeds.begin(), greeds.end());
+
+		// explore case
+		UCB1<MAB<Move>*> moveChooser(2);
+		int moveMABIndex = moveChooser.getChoice(moveMABs, round);
+		UtilityNode<MAB<Move>*> *moveMABNode = moveMABs[moveMABIndex];
+
+		UCB1<MAB<Coordinate>*> coordinateChooser(2);
+		int coordinateMABIndex = coordinateChooser.getChoice(coordinateMABs, round);
+		UtilityNode<MAB<Coordinate>*> *coordinateMABNode = coordinateMABs[coordinateMABIndex];
+
+		UCB1<float> greedChooser(2);
+		int greedIndex = greedChooser.getChoice(greeds, round);
+		UtilityNode<float> *greedNode = greeds[greedIndex];
+
+		CMABParameters resultParameters(moveMABNode, coordinateMABNode, greedNode);
+		UtilityNode<CMABParameters> *result = new UtilityNode<CMABParameters>(resultParameters);\
+		return result;
+	}
+	else {
+		random_shuffle(parameters.begin(), parameters.end());
+
+		UCB1<CMABParameters> parametersChooser(2);
+		int parametersIndex = parametersChooser.getChoice(parameters, round);
+		UtilityNode<CMABParameters> *result = parameters[parametersIndex];
+		remove(parameters, parametersIndex); // remove to ensure this isn't picked twice
+
+		return result;
+	}
+}
+
+void printParameters(UtilityNode<CMABParameters> parametersNode) {
+	CMABParameters parameters = parametersNode.object;
+	cerr << parameters.moveMAB->object->toString() << " " << parameters.coordinateMAB->object->toString() << " " << parameters.greed->object 
+		 << " trials: " << parametersNode.numTrials << " score: " << parametersNode.getAverageUtility() << "\n";
+	cout << parameters.moveMAB->object->toString() << " " << parameters.coordinateMAB->object->toString() << " " << parameters.greed->object
+		 << " trials: " << parametersNode.numTrials << " score: " << parametersNode.getAverageUtility() << "\n";
+}
+
+void CMABRound(vector<UtilityNode<MAB<Move>*>*> &moveMABs, vector<UtilityNode<MAB<Coordinate>*>*> &coordinateMABs, vector<UtilityNode<float>*> &greeds,
+			   vector<UtilityNode<CMABParameters>*> &parameters, default_random_engine &generator, float exploration, int round) {
+	UtilityNode<CMABParameters> *parametersNode0 = getParameters(moveMABs, coordinateMABs, greeds, parameters, generator, exploration, round);
+	UtilityNode<CMABParameters> *parametersNode1 = getParameters(moveMABs, coordinateMABs, greeds, parameters, generator, exploration, round);
+
+	CMABParameters &parameters0 = parametersNode0->object;
+	CMABParameters &parameters1 = parametersNode1->object;
+	
+	RatioEvaluator *evaluator0 = new RatioEvaluator();
+	CMABStrategy bot0Strategy(evaluator0, parameters0.moveMAB->object, parameters0.coordinateMAB->object, parameters0.greed->object);
+	RatioEvaluator *evaluator1 = new RatioEvaluator();
+	CMABStrategy bot1Strategy(evaluator1, parameters1.moveMAB->object, parameters1.coordinateMAB->object, parameters1.greed->object);
+
+	Bot bot0(&bot0Strategy);
+	Bot bot1(&bot1Strategy);
+
+	int roundResult = StrategyTesting::playMatch(bot0, bot1);
+	if (roundResult == -1) roundResult = 0.5;
+	parametersNode0->updateUtility(1 - roundResult);
+	parameters0.updateUtilities(1 - roundResult);
+	parametersNode1->updateUtility(roundResult);
+	parameters1.updateUtilities(roundResult);
+
+	roundResult = StrategyTesting::playMatch(bot1, bot0);
+	if (roundResult == -1) roundResult = 0.5;
+	parametersNode0->updateUtility(roundResult);
+	parameters0.updateUtilities(roundResult);
+	parametersNode1->updateUtility(1 - roundResult);
+	parameters1.updateUtilities(1 - roundResult);
+
+	parameters.push_back(parametersNode0);
+	parameters.push_back(parametersNode1);
+
+	printParameters(*parametersNode0);
+	printParameters(*parametersNode1);
+	cerr << "\n";
+	cout << "\n";
+}
+
+template <class T> bool UtilityNodeComparator(UtilityNode<T> *x, UtilityNode<T> *y) { return x->numTrials > y->numTrials; }
+
+void StrategyTesting::optimizeParameters(int rounds) {
+	vector<UtilityNode<MAB<Move>*>*> moveMABs;
+	for (float epsilon = 0.1; epsilon < 0.95; epsilon += 0.1) {
+		MAB<Move> *moveMAB = new EpsilonGreedy<Move>(epsilon);
+		UtilityNode<MAB<Move>*> *moveMABNode = new UtilityNode<MAB<Move>*>(moveMAB);
+		moveMABs.push_back(moveMABNode);
+	}
+	for (float confidence = 1; confidence < 3.1; confidence += 0.5) {
+		MAB<Move> *moveMAB = new UCB1<Move>(confidence);
+		UtilityNode<MAB<Move>*> *moveMABNode = new UtilityNode<MAB<Move>*>(moveMAB);
+		moveMABs.push_back(moveMABNode);
+	}
+
+	vector<UtilityNode<MAB<Coordinate>*>*> coordinateMABs;
+	for (float epsilon = 0.1; epsilon < 0.95; epsilon += 0.1) {
+		MAB<Coordinate> *coordinateMAB = new EpsilonGreedy<Coordinate>(epsilon);
+		UtilityNode<MAB<Coordinate>*> *coordinateMABNode = new UtilityNode<MAB<Coordinate>*>(coordinateMAB);
+		coordinateMABs.push_back(coordinateMABNode);
+	}
+	for (float confidence = 1; confidence < 3.1; confidence += 0.5) {
+		MAB<Coordinate> *coordinateMAB = new UCB1<Coordinate>(confidence);
+		UtilityNode<MAB<Coordinate>*> *coordinateMABNode = new UtilityNode<MAB<Coordinate>*>(coordinateMAB);
+		coordinateMABs.push_back(coordinateMABNode);
+	}
+
+	vector<UtilityNode<float>*> greeds;
+	for (float greed = 0.1; greed < 0.95; greed += 0.1) {
+		UtilityNode<float> *greedNode = new UtilityNode<float>(greed);
+		greeds.push_back(greedNode);
+	}
+
+	vector<UtilityNode<CMABParameters>*> parameters;
+	default_random_engine generator;
+	random_device rd;
+	generator.seed(rd());
+
+	float exploration = 0.99;
+	float explorationDecay = 0.991;
+
+	// round += 2 and exploration *= explorationDecay * explorationDecay because each CMABRound
+	// does 2 trials
+	for (int round = 1; round <= rounds; round += 2) {
+		CMABRound(moveMABs, coordinateMABs, greeds, parameters, generator, exploration, round);
+		exploration *= explorationDecay * explorationDecay;
+
+		if (round % 10 == 0) {
+			cerr << "round: " << round << " exploration: " << exploration << " strategies tested: " << parameters.size() << "\n";
+			cout << "round: " << round << " exploration: " << exploration << " strategies tested: " << parameters.size() << "\n";
+			sort(parameters.begin(), parameters.end(), UtilityNodeComparator<CMABParameters>);
+			for (int i = 0; i < 5 && i < parameters.size(); i++) {
+				printParameters(*parameters[i]);
+			}
+			cerr << "\n";
+			cout << "\n";
 		}
 	}
 }

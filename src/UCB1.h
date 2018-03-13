@@ -31,6 +31,27 @@ public:
 		}
 		return bestNodeIndex;
 	}
+
+	int getChoice(vector<UtilityNode<T>*> &nodes, int numTrials) {
+		float confidenceNumerator = log(numTrials) * confidenceConstant;
+		assert(nodes.size() > 0);
+		int bestNodeIndex = 0;
+		float bestScore = nodes[0]->getAverageUtility() + sqrt(confidenceNumerator / nodes[0]->numTrials);
+		for (int i = 1; i < nodes.size(); i++) {
+			float nodeScore = nodes[i]->getAverageUtility() + sqrt(confidenceNumerator / nodes[i]->numTrials);
+			if (nodeScore > bestScore) {
+				bestScore = nodeScore;
+				bestNodeIndex = i;
+			}
+		}
+		return bestNodeIndex;
+	}
+
+	string toString() {
+		ostringstream stringStream;
+		stringStream << "UCB1(" << confidenceConstant << ")";
+		return stringStream.str();
+	}
 };
 
 #endif

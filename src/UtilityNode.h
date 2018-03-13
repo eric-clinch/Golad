@@ -17,7 +17,9 @@ public:
 	int numTrials;
 	T object;
 
-	UtilityNode(T object) {
+	UtilityNode() {};
+
+	UtilityNode(T &object) {
 		this->object = object;
 		this->numTrials = 0;
 		this->totalUtility = 0;
