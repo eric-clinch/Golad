@@ -6,7 +6,8 @@
 
 template <class T> class MAB {
 public:
-	virtual UtilityNode<T> getChoice(vector<UtilityNode<T>> nodes) = 0;
+	// returns the index of the chosen element
+	virtual int getChoice(vector<UtilityNode<T>> &nodes, int numTrials) = 0;
 };
 
 #endif

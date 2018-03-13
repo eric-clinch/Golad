@@ -52,11 +52,12 @@ public:
 	virtual void UpdateBoard(stringstream &stream);
 	virtual void initiateBoardPositions(int aliveCells = 40);
 	virtual Board *getCopy();
+	virtual void copyInto(Board &result);
 
+	virtual bool gameIsOver();
 	virtual int getPlayerCellCount(Player playerID);
-	virtual void setPlayerCellCount(Player playerID, int cellCount);
-	virtual int getWidth();
-	virtual int getHeight();
+	virtual inline int getWidth();
+	virtual inline int getHeight();
 	
 	virtual inline void nextRound();
 	virtual void setNextRoundBoard(Board &result);
@@ -71,6 +72,8 @@ public:
 	virtual string toString(bool showBoard = false);
 
 	virtual vector<Coordinate> GetCells(char type);
+	virtual inline char getCoordinateType(Coordinate &c);
+	virtual inline char getCoordinateType(int x, int y);
 };
 
 #endif

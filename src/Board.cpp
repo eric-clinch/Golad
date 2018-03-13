@@ -422,6 +422,13 @@ void Board::initiateBoardPositions(int aliveCells) {
 	P0CellCount = P1CellCount = aliveCells;
 }
 
+void Board::copyInto(Board &result) {
+	copyBoard(result.board);
+	result.P0CellCount = P0CellCount;
+	result.P1CellCount = P1CellCount;
+	assert(result == *this);
+}
+
 Board* Board::getCopy() {
 	Board *result = new Board(width, height);
 	copyBoard(result->board);
@@ -431,13 +438,8 @@ Board* Board::getCopy() {
 	return result;
 }
 
-void Board::setPlayerCellCount(Player playerID, int cellCount) {
-	if (playerID == P0) {
-		P0CellCount = cellCount;
-	}
-	else {
-		P1CellCount = cellCount;
-	}
+bool Board::gameIsOver() {
+	return P0CellCount == 0 || P1CellCount == 0;
 }
 
 int Board::getPlayerCellCount(Player playerID) {
@@ -449,11 +451,11 @@ int Board::getPlayerCellCount(Player playerID) {
 	}
 }
 
-int Board::getWidth() {
+inline int Board::getWidth() {
 	return width;
 }
 
-int Board::getHeight() {
+inline int Board::getHeight() {
 	return height;
 }
 
@@ -475,6 +477,14 @@ vector<Coordinate> Board::GetCells(char type) {
 		}
 	}
 	return selectedCells;
+}
+
+char inline Board::getCoordinateType(Coordinate &c) {
+	return board[c.x + 1][c.y + 1];
+}
+
+inline char Board::getCoordinateType(int x, int y) {
+	return board[x + 1][y + 1];
 }
 
 inline void Board::deleteBoard() {

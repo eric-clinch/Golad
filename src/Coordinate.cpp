@@ -27,3 +27,9 @@ bool Coordinate::operator==(Coordinate &other) {
 bool Coordinate::operator==(const Coordinate &other) const {
 	return x == other.x && y == other.y;
 }
+
+// an arbitrary comparison function. Its purpose is just to
+// define an ordering over coordinates
+bool Coordinate::operator<(Coordinate &other) {
+	return x < other.x || (x == other.x && y < other.y);
+}

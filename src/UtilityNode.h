@@ -7,6 +7,8 @@
 
 #include <assert.h>
 
+using namespace std;
+
 template<class T> class UtilityNode{
 private:
 	float totalUtility;
@@ -22,7 +24,7 @@ public:
 	}
 
 	float getAverageUtility() {
-		assert(numTrials > 0);
+		if (numTrials == 0) return numeric_limits<float>::infinity();
 		return totalUtility / numTrials;
 	}
 

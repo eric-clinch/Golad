@@ -9,10 +9,9 @@ private:
 	float maxscore = 288.0;
 
 public:
-	float evaluate(Board b, Player playerID, Player enemyID) {
-		if (b.getPlayerCellCount(playerID) == 0) return -maxscore;
-		if (b.getPlayerCellCount(enemyID) == 0) return maxscore;
-		return (float)b.getPlayerCellCount(playerID) / b.getPlayerCellCount(enemyID);
+	float evaluate(Board &b, Player playerID, Player enemyID) {
+		float res = (float)b.getPlayerCellCount(playerID) / (b.getPlayerCellCount(playerID) + b.getPlayerCellCount(enemyID));
+		return res;
 	}
 };
 

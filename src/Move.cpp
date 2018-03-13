@@ -16,8 +16,17 @@ Move::Move(Coordinate &target, Coordinate &sacrifice1, Coordinate &sacrifice2)
 {
 	this->MoveType = BIRTH;
 	this->target = target;
-	this->sacrifice1 = sacrifice1;
-	this->sacrifice2 = sacrifice2;
+
+	// place them in increasing order to guarantee that each
+	// unique move only has one possible representation
+	if (sacrifice1 < sacrifice2) {
+		this->sacrifice1 = sacrifice1;
+		this->sacrifice2 = sacrifice2;
+	}
+	else {
+		this->sacrifice1 = sacrifice2;
+		this->sacrifice2 = sacrifice1;
+	}
 }
 
 string Move::toString() {

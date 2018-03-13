@@ -16,6 +16,7 @@ public:
 	virtual string toString() const;
 	virtual bool operator== (Coordinate &other);
 	virtual bool operator== (const Coordinate &other) const;
+	virtual bool operator< (Coordinate &other);
 };
 
 namespace std {

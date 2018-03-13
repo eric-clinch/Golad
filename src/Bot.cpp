@@ -104,20 +104,14 @@ int Bot::GetMaxRounds()
   return this->maxRounds;
 }
 
-void Bot::SetMyLivingCellCount(int livingCellCount)
-{
-	board->setPlayerCellCount(playerID, livingCellCount);
-}
+void Bot::SetMyLivingCellCount(int livingCellCount) {}
 
 int Bot::GetMyLivingCellCount()
 {
 	return this->board->getPlayerCellCount(playerID);
 }
 
-void Bot::SetEnemyLivingCellCount(int livingCellCount)
-{
-	board->setPlayerCellCount(enemyID, livingCellCount);
-}
+void Bot::SetEnemyLivingCellCount(int livingCellCount) {}
 
 int Bot::GetEnemyLivingCellCount()
 {

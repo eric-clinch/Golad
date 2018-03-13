@@ -6,7 +6,7 @@
 
 class Evaluator {
 public:
-	virtual float evaluate(Board b, Player playerID, Player enemyID) = 0;
+	virtual float evaluate(Board &b, Player playerID, Player enemyID) = 0;
 };
 
 #endif
