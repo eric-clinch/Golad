@@ -1,4 +1,4 @@
-#include "Board.h"
+#include "Board2.h"
 
 // ideas for efficient computation of Conway's Game Of Life taken from here:
 // https://codereview.stackexchange.com/questions/42718/optimize-conways-game-of-life
@@ -16,7 +16,7 @@ using namespace std;
 // 0 3 6
 // 1 4 7
 // 2 5 8
-inline int Board::getLookupTableIndex(char **grid) {
+inline int Board2::getLookupTableIndex(char **grid) {
 	int significance = 1;
 	int result = 0;
 	for (int x = 0; x < 3; x++) {
@@ -34,7 +34,7 @@ inline int Board::getLookupTableIndex(char **grid) {
 	return result;
 }
 
-void Board::getLookupTableHelper(char *lookupTable, char **grid, int x, int y, int bot0Neighbors, int bot1Neighbors) {
+void Board2::getLookupTableHelper(char *lookupTable, char **grid, int x, int y, int bot0Neighbors, int bot1Neighbors) {
 	if (y > 2) {
 		// the grid is full, make a corresponding entry into the lookup table
 		int index = getLookupTableIndex(grid);
@@ -78,7 +78,7 @@ void Board::getLookupTableHelper(char *lookupTable, char **grid, int x, int y, i
 	}
 }
 
-char* Board::getLookupTable() {
+char* Board2::getLookupTable() {
 	int size = pow(3, 9);
 	char *lookupTable = new char[size];
 	for (int i = 0; i < size; i++) lookupTable[i] = ' ';
@@ -99,94 +99,83 @@ char* Board::getLookupTable() {
 	return lookupTable;
 }
 
-char* Board::simulationLookupTable = getLookupTable();
-
-inline char Board::getCell(char **board, int x, int y) {
-	return board[x][y];
-}
-
-inline void Board::setCell(char **board, int x, int y, char c) {
-	board[x][y] = c;
-}
-
-inline char Board::getCell(int x, int y) {
-	return board[x][y];
-}
-
-inline void Board::setCell(int x, int y, char c) {
-	board[x][y] = c;
-}
+char* Board2::simulationLookupTable = getLookupTable();
 
 // significance of each cell:
 // 1  27  729
 // 3  81  2187
 // 9  243 6561
-int Board::getCellIndex(unsigned char cellX, unsigned char cellY) {
+int Board2::getCellIndex(unsigned char cellX, unsigned char cellY) {
 	assert(0 < cellX && cellX <= width);
 	assert(0 < cellY && cellY <= height);
 
 	int index = 0;
+	char *column = board[cellX - 1];
 
-	char c = getCell(cellX - 1, cellY - 1);
+	char c = column[cellY - 1];
 	if (c == '0') index += 1;
 	else if (c == '1') index += 2;
 
-	c = getCell(cellX - 1, cellY);
+	c = column[cellY];
 	if (c == '0') index += 3;
 	else if (c == '1') index += 6;
 
-	c = getCell(cellX - 1, cellY + 1);
+	c = column[cellY + 1];
 	if (c == '0') index += 9;
 	else if (c == '1') index += 18;
 
-	c = getCell(cellX, cellY - 1);
+	column = board[cellX];
+
+	c = column[cellY - 1];
 	if (c == '0') index += 27;
 	else if (c == '1') index += 54;
 
-	c = getCell(cellX, cellY);
+	c = column[cellY];
 	if (c == '0') index += 81;
 	else if (c == '1') index += 162;
 
-	c = getCell(cellX, cellY + 1);
+	c = column[cellY + 1];
 	if (c == '0') index += 243;
 	else if (c == '1') index += 486;
 
-	c = getCell(cellX + 1, cellY - 1);
+	column = board[cellX + 1];
+
+	c = column[cellY - 1];
 	if (c == '0') index += 729;
 	else if (c == '1') index += 1458;
 
-	c = getCell(cellX + 1, cellY);
+	c = column[cellY];
 	if (c == '0') index += 2187;
 	else if (c == '1') index += 4374;
-	
-	c = getCell(cellX + 1, cellY + 1);
+
+	c = column[cellY + 1];
 	if (c == '0') index += 6561;
 	else if (c == '1') index += 13122;
 
 	return index;
 }
 
-inline char Board::getNextCellStatus(unsigned char cellX, unsigned char cellY) {
+inline char Board2::getNextCellStatus(unsigned char cellX, unsigned char cellY) {
 	assert(0 < cellX && cellX <= width);
 	assert(0 < cellY && cellY <= height);
 	return simulationLookupTable[getCellIndex(cellX, cellY)];
 }
 
-inline void Board::updateCellStatus(unsigned char x, unsigned char y, int index) {
+inline void Board2::updateCellStatus(unsigned char x, unsigned char y, int index) {
 	assert(0 < x && x <= width);
 	assert(0 < y && y <= height);
 
-	char currentStatus = getCell(x, y);
+	char currentStatus = board[x][y];
 	if (currentStatus == '0') P0CellCount--;
 	else if (currentStatus == '1') P1CellCount--;
 
 	char updatedStatus = simulationLookupTable[index];
-	setCell(x, y, updatedStatus);
+	board[x][y] = updatedStatus;
 	if (updatedStatus == '0') P0CellCount++;
 	else if (updatedStatus == '1') P1CellCount++;
 }
 
-inline void Board::updateRegionStatus(unsigned char cellX, unsigned char cellY, Board &lastRoundBoard) {
+inline void Board2::updateRegionStatus(unsigned char cellX, unsigned char cellY, Board2 &lastRoundBoard2) {
 	assert(0 < cellX && cellX <= width);
 	assert(0 < cellY && cellY <= height);
 
@@ -196,24 +185,24 @@ inline void Board::updateRegionStatus(unsigned char cellX, unsigned char cellY, 
 	int maxY = min(cellY + 1, height);
 
 	for (unsigned char y = minY; y <= maxY; y++) {
-		int cellIndex = lastRoundBoard.getCellIndex(minX, y);
+		int cellIndex = lastRoundBoard2.getCellIndex(minX, y);
 		updateCellStatus(minX, y, cellIndex);
 		for (unsigned char x = minX + 1; x <= maxX; x++) {
 			cellIndex /= 27;
 
-			char c = lastRoundBoard.getCell(x + 1, y - 1);
+			char c = lastRoundBoard2.board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = lastRoundBoard.getCell(x + 1, y);
+			c = lastRoundBoard2.board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
-			c = lastRoundBoard.getCell(x + 1, y + 1);
+			c = lastRoundBoard2.board[x + 1][y + 1];
 			if (c == '0') cellIndex += 6561;
 			else if (c == '1') cellIndex += 13122;
 
-			assert(cellIndex == lastRoundBoard.getCellIndex(x, y));
+			assert(cellIndex == lastRoundBoard2.getCellIndex(x, y));
 
 			updateCellStatus(x, y, cellIndex);
 		}
@@ -222,20 +211,20 @@ inline void Board::updateRegionStatus(unsigned char cellX, unsigned char cellY, 
 
 // runs the next round of the Game of Life simulation, updating the board as well
 // as the cell counts for each player
-inline void Board::nextRound() {
-	char **newBoard = new char *[__width__];
+inline void Board2::nextRound() {
+	char **newBoard2 = new char *[__width__];
 	for (int i = 0; i < __width__; i++) {
-		newBoard[i] = new char[__height__];
+		newBoard2[i] = new char[__height__];
 	}
 
 	// fill in the outer edge
 	for (int x = 0; x < __width__; x++) {
-		setCell(newBoard, x, 0, '.');
-		setCell(newBoard, x, __height__ - 1, '.');
+		newBoard2[x][0] = '.';
+		newBoard2[x][__height__ - 1] = '.';
 	}
 	for (int y = 1; y <= height; y++) {
-		setCell(newBoard, 0, y, '.');
-		setCell(newBoard, __width__ - 1, y, '.');
+		newBoard2[0][y] = '.';
+		newBoard2[__width__ - 1][y] = '.';
 	}
 
 	P0CellCount = P1CellCount = 0;
@@ -244,20 +233,20 @@ inline void Board::nextRound() {
 		char newStatus = simulationLookupTable[cellIndex];
 		if (newStatus == '0') P0CellCount++;
 		else if (newStatus == '1') P1CellCount++;
-		setCell(newBoard, 1, y, newStatus);
+		newBoard2[1][y] = newStatus;
 
 		for (unsigned char x = 2; x <= width; x++) {
 			cellIndex /= 27;
 
-			char c = getCell(x + 1, y - 1);
+			char c = board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = getCell(x + 1, y);
+			c = board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
-			c = getCell(x + 1, y + 1);
+			c = board[x + 1][y + 1];
 			if (c == '0') cellIndex += 6561;
 			else if (c == '1') cellIndex += 13122;
 
@@ -266,35 +255,35 @@ inline void Board::nextRound() {
 			char newStatus = simulationLookupTable[cellIndex];
 			if (newStatus == '0') P0CellCount++;
 			else if (newStatus == '1') P1CellCount++;
-			setCell(newBoard, x, y, newStatus);
+			newBoard2[x][y] = newStatus;
 		}
 	}
 
-	deleteBoard();
-	board = newBoard;
+	deleteBoard2();
+	board = newBoard2;
 }
 
-void Board::setNextRoundBoard(Board &result) {
+void Board2::setNextRoundBoard2(Board2 &result) {
 	result.P0CellCount = result.P1CellCount = 0;
 	for (unsigned char y = 1; y <= height; y++) {
 		int cellIndex = getCellIndex(1, y);
 		char newStatus = simulationLookupTable[cellIndex];
 		if (newStatus == '0') result.P0CellCount++;
 		else if (newStatus == '1') result.P1CellCount++;
-		result.setCell(1, y, newStatus);
+		result.board[1][y] = newStatus;
 
 		for (unsigned char x = 2; x <= width; x++) {
 			cellIndex /= 27;
 
-			char c = getCell(x + 1, y - 1);
+			char c = board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = getCell(x + 1, y);
+			c = board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
-			c = getCell(x + 1, y + 1);
+			c = board[x + 1][y + 1];
 			if (c == '0') cellIndex += 6561;
 			else if (c == '1') cellIndex += 13122;
 
@@ -303,13 +292,13 @@ void Board::setNextRoundBoard(Board &result) {
 			char newStatus = simulationLookupTable[cellIndex];
 			if (newStatus == '0') result.P0CellCount++;
 			else if (newStatus == '1') result.P1CellCount++;
-			result.setCell(x, y, newStatus);
+			result.board[x][y] = newStatus;
 		}
 	}
 }
 
-Board* Board::getNextRoundBoard() {
-	Board *result = new Board(width, height);
+Board2* Board2::getNextRoundBoard2() {
+	Board2 *result = new Board2(width, height);
 
 	result->P0CellCount = result->P1CellCount = 0;
 	for (unsigned char y = 1; y <= height; y++) {
@@ -317,20 +306,20 @@ Board* Board::getNextRoundBoard() {
 		char newStatus = simulationLookupTable[cellIndex];
 		if (newStatus == '0') result->P0CellCount++;
 		else if (newStatus == '1') result->P1CellCount++;
-		result->setCell(1, y, newStatus);
+		result->board[1][y] = newStatus;
 
 		for (unsigned char x = 2; x <= width; x++) {
 			cellIndex /= 27;
 
-			char c = getCell(x + 1, y - 1);
+			char c = board[x + 1][y - 1];
 			if (c == '0') cellIndex += 729;
 			else if (c == '1') cellIndex += 1458;
 
-			c = getCell(x + 1, y);
+			c = board[x + 1][y];
 			if (c == '0') cellIndex += 2187;
 			else if (c == '1') cellIndex += 4374;
 
-			c = getCell(x + 1, y + 1);
+			c = board[x + 1][y + 1];
 			if (c == '0') cellIndex += 6561;
 			else if (c == '1') cellIndex += 13122;
 
@@ -339,16 +328,16 @@ Board* Board::getNextRoundBoard() {
 			char newStatus = simulationLookupTable[cellIndex];
 			if (newStatus == '0') result->P0CellCount++;
 			else if (newStatus == '1') result->P1CellCount++;
-			result->setCell(x, y, newStatus);
+			result->board[x][y] = newStatus;
 		}
 	}
 
 	return result;
 }
 
-Board::Board() {}
+Board2::Board2() {}
 
-Board::Board(int width, int height) : board(new char*[__width__]),
+Board2::Board2(int width, int height) : width(width), height(height), __width__(width + 2), __height__(height + 2), board(new char*[this->__width__]),
 									  P0CellCount(0), P1CellCount(0)
 {
 	for (int i = 0; i < __width__; i++) {
@@ -357,20 +346,20 @@ Board::Board(int width, int height) : board(new char*[__width__]),
 
 	// fill in the outer edge
 	for (int x = 0; x < __width__; x++) {
-		setCell(x, 0, '.');
-		setCell(x, __height__ - 1, '.');
+		board[x][0] = '.';
+		board[x][__height__ - 1] = '.';
 	}
 	for (int y = 1; y <= height; y++) {
-		setCell(0, y, '.');
-		setCell(__width__ - 1, y, '.');
+		board[0][y] = '.';
+		board[__width__ - 1][y] = '.';
 	}
 }
 
-Board::~Board() {
-	deleteBoard();
+Board2::~Board2() {
+	deleteBoard2();
 }
 
-bool Board::operator== (Board &other) {
+bool Board2::operator== (Board2 &other) {
 	if (width != other.width || height != other.height) {
 		return false;
 	}
@@ -382,7 +371,7 @@ bool Board::operator== (Board &other) {
 	}
 	for (int x = 0; x < __width__; x++) {
 		for (int y = 0; y < __height__; y++) {
-			if (getCell(x, y) != other.getCell(x, y)) {
+			if (board[x][y] != other.board[x][y]) {
 				return false;
 			}
 		}
@@ -390,14 +379,14 @@ bool Board::operator== (Board &other) {
 	return true;
 }
 
-void Board::UpdateBoard(stringstream &stream) {
+void Board2::UpdateBoard2(stringstream &stream) {
 	int x = 1, y = 1;
 	string field;
 	P0CellCount = 0;
 	P1CellCount = 0;
 	while (getline(stream, field, ',')) {
 		char fieldChar = field.at(0);
-		setCell(x, y, fieldChar);
+		board[x][y] = fieldChar;
 		if (fieldChar == P0) {
 			P0CellCount++;
 		}
@@ -412,11 +401,11 @@ void Board::UpdateBoard(stringstream &stream) {
 	}
 }
 
-void Board::initiateBoardPositions(int aliveCells) {
+void Board2::initiateBoard2Positions(int aliveCells) {
 	// set all cells to dead
 	for (int x = 0; x < __width__; x++) {
 		for (int y = 0; y < __height__; y++) {
-			setCell(x, y, '.');
+			board[x][y] = '.';
 		}
 	}
 
@@ -436,33 +425,33 @@ void Board::initiateBoardPositions(int aliveCells) {
 		positions.pop_back();
 
 		// place live cells rotationally symmetrically
-		setCell(c.x, c.y, '0');
-		setCell(__width__ - c.x - 1, __height__ - c.y - 1, '1');
+		board[c.x][c.y] = '0';
+		board[__width__ - c.x - 1][__height__ - c.y - 1] = '1';
 	}
 	P0CellCount = P1CellCount = aliveCells;
 }
 
-void Board::copyInto(Board &result) {
-	copyBoard(result.board);
+void Board2::copyInto(Board2 &result) {
+	copyBoard2(result.board);
 	result.P0CellCount = P0CellCount;
 	result.P1CellCount = P1CellCount;
 	assert(result == *this);
 }
 
-Board* Board::getCopy() {
-	Board *result = new Board(width, height);
-	copyBoard(result->board);
+Board2* Board2::getCopy() {
+	Board2 *result = new Board2(width, height);
+	copyBoard2(result->board);
 	result->P0CellCount = P0CellCount;
 	result->P1CellCount = P1CellCount;
 	assert(*result == *this);
 	return result;
 }
 
-inline bool Board::gameIsOver() {
+inline bool Board2::gameIsOver() {
 	return P0CellCount == 0 || P1CellCount == 0;
 }
 
-inline int Board::getPlayerCellCount(Player playerID) {
+inline int Board2::getPlayerCellCount(Player playerID) {
 	if (playerID == P0) {
 		return P0CellCount;
 	}
@@ -471,11 +460,11 @@ inline int Board::getPlayerCellCount(Player playerID) {
 	}
 }
 
-inline int Board::getWidth() {
+inline int Board2::getWidth() {
 	return width;
 }
 
-inline int Board::getHeight() {
+inline int Board2::getHeight() {
 	return height;
 }
 
@@ -487,11 +476,11 @@ inline int Board::getHeight() {
 // outer edge (ie the coordinates will be one less than their actual
 // indices on the internally represented board, but will look correct
 // to an outside observer who doesn't know about this outer edge).
-vector<Coordinate> Board::GetCells(char type) {
+vector<Coordinate> Board2::GetCells(char type) {
 	vector<Coordinate> selectedCells;
 	for (int x = 1; x <= width; ++x) {
 		for (int y = 1; y <= height; ++y) {
-			if (getCell(x, y) == type) {
+			if (board[x][y] == type) {
 				selectedCells.push_back(Coordinate(x - 1, y - 1));
 			}
 		}
@@ -499,70 +488,70 @@ vector<Coordinate> Board::GetCells(char type) {
 	return selectedCells;
 }
 
-char inline Board::getCoordinateType(Coordinate &c) {
-	return getCell(c.x + 1, c.y + 1);
+char inline Board2::getCoordinateType(Coordinate &c) {
+	return board[c.x + 1][c.y + 1];
 }
 
-inline char Board::getCoordinateType(int x, int y) {
-	return getCell(x + 1, y + 1);
+inline char Board2::getCoordinateType(int x, int y) {
+	return board[x + 1][y + 1];
 }
 
-inline void Board::deleteBoard() {
+inline void Board2::deleteBoard2() {
 	for (int i = 0; i < __width__; i++) {
 		delete[] board[i];
 	}
 	delete[] board;
 }
 
-inline void Board::copyBoard(char **blankBoard) {
+inline void Board2::copyBoard2(char **blankBoard2) {
 	for (int x = 0; x < __width__; x++) {
-		copy(board[x], board[x] + __height__, blankBoard[x]);
+		copy(board[x], board[x] + __height__, blankBoard2[x]);
 	}
 }
 
-inline void Board::copyBoard(Board &blankBoard) {
-	assert(blankBoard.width == width && blankBoard.height == height);
-	assert(blankBoard.__width__ == __width__ && blankBoard.__height__ == __height__);
-	copyBoard(blankBoard.board);
-	blankBoard.P0CellCount = P0CellCount;
-	blankBoard.P1CellCount = P1CellCount;
-	assert(*this == blankBoard);
+inline void Board2::copyBoard2(Board2 &blankBoard2) {
+	assert(blankBoard2.width == width && blankBoard2.height == height);
+	assert(blankBoard2.__width__ == __width__ && blankBoard2.__height__ == __height__);
+	copyBoard2(blankBoard2.board);
+	blankBoard2.P0CellCount = P0CellCount;
+	blankBoard2.P1CellCount = P1CellCount;
+	assert(*this == blankBoard2);
 }
 
-bool Board::isLegal(Move &move, Player playerID) {
+bool Board2::isLegal(Move &move, Player playerID) {
 	if (move.MoveType == KILL) {
-		return getCell(move.target.x + 1, move.target.y + 1) != '.';
+		return board[move.target.x + 1][move.target.y + 1] != '.';
 	}
 	else if (move.MoveType == BIRTH) {
 		char playerChar = playerID;
-		return (getCell(move.sacrifice1.x + 1, move.sacrifice1.y + 1) == getCell(move.sacrifice2.x + 1, move.sacrifice2.y + 1) &&
-				getCell(move.sacrifice1.x + 1, move.sacrifice1.y + 1) == playerChar &&
-				getCell(move.target.x + 1, move.target.y + 1) == '.' &&
+		return (board[move.sacrifice1.x + 1][move.sacrifice1.y + 1] == board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] &&
+		        board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] == playerChar &&
+				board[move.target.x + 1][move.target.y + 1] == '.' &&
 				(move.sacrifice1.x != move.sacrifice2.x || move.sacrifice1.y != move.sacrifice2.y));
 	}
 	else return true;
 }
 
-Board* Board::makeMove(Move &move, Player playerID) {
-	Board *result = new Board(width, height);
-	copyBoard(result->board);
-	result->makeMoveOnBoard(move, playerID);
+Board2* Board2::makeMove(Move &move, Player playerID) {
+	Board2 *result = new Board2(width, height);
+	copyBoard2(result->board);
+	result->makeMoveOnBoard2(move, playerID);
 	return result;
 }
 
-void Board::makeMove(Move &move, Player playerID, Board &result) {
+void Board2::makeMove(Move &move, Player playerID, Board2 &result) {
 	assert(isLegal(move, playerID));
 
 	if (move.MoveType == KILL) {
 		int targetX = move.target.x + 1;
 		int targetY = move.target.y + 1;
 
-		char targetChar = getCell(targetX, targetY);
-		setCell(targetX, targetY, '.');
+		char targetChar = board[targetX][targetY];
+		board[targetX][targetY] = '.';
 
-		setNextRoundBoard(result);
+		setNextRoundBoard2(result);
 
-		setCell(targetX, targetY, targetChar);
+		board[targetX][targetY] = targetChar;
 	}
 	else if (move.MoveType == BIRTH) {
 		int sacrifice1X = move.sacrifice1.x + 1;
@@ -575,31 +564,31 @@ void Board::makeMove(Move &move, Player playerID, Board &result) {
 		int targetY = move.target.y + 1;
 
 		char playerChar = playerID;
-		setCell(sacrifice1X, sacrifice1Y, '.');
-		setCell(sacrifice2X, sacrifice2Y, '.');
-		setCell(targetX, targetY, playerChar);
+		board[sacrifice1X][sacrifice1Y] = '.';
+		board[sacrifice2X][sacrifice2Y] = '.';
+		board[targetX][targetY] = playerChar;
 
-		setNextRoundBoard(result);
+		setNextRoundBoard2(result);
 
-		setCell(sacrifice1X, sacrifice1Y, playerChar);
-		setCell(sacrifice2X, sacrifice2Y, playerChar);
-		setCell(targetX, targetY, '.');
+		board[sacrifice1X][sacrifice1Y] = playerChar;
+		board[sacrifice2X][sacrifice2Y] = playerChar;
+		board[targetX][targetY] = '.';
 	}
 	else {
-		setNextRoundBoard(result);
+		setNextRoundBoard2(result);
 	}
 }
 
-void Board::makeMoveOnBoard(Move &move, Player playerID) {
+void Board2::makeMoveOnBoard2(Move &move, Player playerID) {
 	assert(isLegal(move, playerID));
 	if (move.MoveType == KILL) {
-		setCell(move.target.x + 1, move.target.y + 1, '.');
+		board[move.target.x + 1][move.target.y + 1] = '.';
 	}
 	else if (move.MoveType == BIRTH) {
 		char playerChar = playerID;
-		setCell(move.sacrifice1.x + 1, move.sacrifice1.y + 1, '.');
-		setCell(move.sacrifice2.x + 1, move.sacrifice2.y + 1, '.');
-		setCell(move.target.x + 1, move.target.y + 1, playerChar);
+		board[move.sacrifice1.x + 1][move.sacrifice1.y + 1] = '.';
+		board[move.sacrifice2.x + 1][move.sacrifice2.y + 1] = '.';
+		board[move.target.x + 1][move.target.y + 1] = playerChar;
 	}
 
 	// this call is necessary to update the cell counts, as well as running the simulation
@@ -607,27 +596,27 @@ void Board::makeMoveOnBoard(Move &move, Player playerID) {
 }
 
 // applies a move to a board as if the move was made on the last round of play, and copies the result
-// into the given Board result so that following expression would be equal to the Board result for any
+// into the given Board2 result so that following expression would be equal to the Board2 result for any
 // given Move move, and Player playerID:
-//     originalBoard.makeMove(move, playerID);
-// Note that originalBoard.nextRound() is making the pass move on the original or an equivalent expression
-// should be used as the nextRoundBoard parameter.
+//     originalBoard2.makeMove(move, playerID);
+// Note that originalBoard2.nextRound() is making the pass move on the original or an equivalent expression
+// should be used as the nextRoundBoard2 parameter.
 // this should be used to minimize recomputation when applying different moves
 // to the same board.
-void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board &result) {
+void Board2::applyMove(Move &move, Player playerID, Board2 &nextRoundBoard2, Board2 &result) {
 	assert(isLegal(move, playerID));
-	nextRoundBoard.copyBoard(result);
+	nextRoundBoard2.copyBoard2(result);
 
 	if (move.MoveType == KILL) {
 		int targetX = move.target.x + 1;
 		int targetY = move.target.y + 1;
 
-		char targetChar = getCell(targetX, targetY);
-		setCell(targetX, targetY, '.');
+		char targetChar = board[targetX][targetY];
+		board[targetX][targetY] = '.';
 
 		result.updateRegionStatus(targetX, targetY, *this);
 
-		setCell(targetX, targetY, targetChar);
+		board[targetX][targetY] = targetChar;
 	}
 	else if (move.MoveType == BIRTH) {
 		int sacrifice1X = move.sacrifice1.x + 1;
@@ -640,38 +629,38 @@ void Board::applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board 
 		int targetY = move.target.y + 1;
 
 		char playerChar = playerID;
-		setCell(sacrifice1X, sacrifice1Y, '.');
-		setCell(sacrifice2X, sacrifice2Y, '.');
-		setCell(targetX, targetY, playerChar);
+		board[sacrifice1X][sacrifice1Y] = '.';
+		board[sacrifice2X][sacrifice2Y] = '.';
+		board[targetX][targetY] = playerChar;
 
 		result.updateRegionStatus(sacrifice1X, sacrifice1Y, *this);
 		result.updateRegionStatus(sacrifice2X, sacrifice2Y, *this);
 		result.updateRegionStatus(targetX, targetY, *this);
 
-		setCell(sacrifice1X, sacrifice1Y, playerChar);
-		setCell(sacrifice2X, sacrifice2Y, playerChar);
-		setCell(targetX, targetY, '.');
+		board[sacrifice1X][sacrifice1Y] = playerChar;
+		board[sacrifice2X][sacrifice2Y] = playerChar;
+		board[targetX][targetY] = '.';
 	}
 }
 
-string Board::repr() {
+string Board2::repr() {
 	ostringstream result;
 	for (int y = 1; y <= height; y++) {
 		for (int x = 1; x <= width; x++) {
-			result << getCell(x, y);
+			result << board[x][y];
 			if (y != height || x != width) result << ",";
 		}
 	}
 	return result.str();
 }
 
-string Board::toString(bool showBorder) {
+string Board2::toString(bool showBorder) {
 	ostringstream result;
 	result << "Player 0: " << P0CellCount << " Player 1: " << P1CellCount << "\n";
 	if (showBorder) {
 		for (int y = 0; y < __height__; y++) {
 			for (int x = 0; x < __width__; x++) {
-				result << getCell(x, y) << " ";
+				result << board[x][y] << " ";
 			}
 			result << "\n";
 		}
@@ -679,7 +668,7 @@ string Board::toString(bool showBorder) {
 	else {
 		for (int y = 1; y <= height; y++) {
 			for (int x = 1; x <= width; x++) {
-				result << getCell(x, y) << " ";
+				result << board[x][y] << " ";
 			}
 			result << "\n";
 		}

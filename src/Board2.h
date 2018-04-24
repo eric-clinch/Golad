@@ -10,8 +10,8 @@
 	#define NDEBUG
 #endif
 
-#ifndef BOARD_h
-#define BOARD_h
+#ifndef BOARD2_h
+#define BOARD2_h
 
 #include <sstream>
 #include <vector>
@@ -24,12 +24,10 @@
 
 using namespace std;
 
-class Board {
+class Board2 {
 private:
-	static const int width = 18;
-	static const int height = 16;
-	static const int __width__ = width + 2;
-	static const int __height__ = height + 2; // the dimensions of the 2D char array used to represent the board internally
+	int width, height;
+	int __width__, __height__; // the dimensions of the 2D char array used to represent the board internally
 	int P0CellCount, P1CellCount;
 	char **board;
 
@@ -37,33 +35,28 @@ private:
 	static void getLookupTableHelper(char *lookupTable, char **grid, int x, int y, int bot0Neighbors, int bot1Neighbors);
 	static char* getLookupTable();
 
-	virtual inline char getCell(char **board, int x, int y);
-	virtual inline void setCell(char **board, int x, int y, char c);
-	virtual inline char getCell(int x, int y);
-	virtual inline void setCell(int x, int y, char c);
-
 	virtual int getCellIndex(unsigned char cellX, unsigned char cellY);
 	virtual inline char getNextCellStatus(unsigned char cellX, unsigned char cellY);
 
 	virtual inline void updateCellStatus(unsigned char row, unsigned char col, int cellIndex);
-	virtual inline void updateRegionStatus(unsigned char row, unsigned char col, Board &lastRoundBoard);
+	virtual inline void updateRegionStatus(unsigned char row, unsigned char col, Board2 &lastRoundBoard2);
 
-	virtual inline void deleteBoard();
-	virtual inline void copyBoard(char **blankBoard);
-	virtual inline void copyBoard(Board &blankBoard);
+	virtual inline void deleteBoard2();
+	virtual inline void copyBoard2(char **blankBoard2);
+	virtual inline void copyBoard2(Board2 &blankBoard2);
 
 public:
 	static char *simulationLookupTable;
 
-	Board();
-	Board(int width, int height);
-	~Board();
-	bool operator== (Board &other);
+	Board2();
+	Board2(int width, int height);
+	~Board2();
+	bool operator== (Board2 &other);
 
-	virtual void UpdateBoard(stringstream &stream);
-	virtual void initiateBoardPositions(int aliveCells = 40);
-	virtual Board *getCopy();
-	virtual void copyInto(Board &result);
+	virtual void UpdateBoard2(stringstream &stream);
+	virtual void initiateBoard2Positions(int aliveCells = 40);
+	virtual Board2 *getCopy();
+	virtual void copyInto(Board2 &result);
 
 	virtual inline bool gameIsOver();
 	virtual inline int getPlayerCellCount(Player playerID);
@@ -71,16 +64,16 @@ public:
 	virtual inline int getHeight();
 	
 	virtual inline void nextRound();
-	virtual void setNextRoundBoard(Board &result);
-	virtual Board *getNextRoundBoard();
+	virtual void setNextRoundBoard2(Board2 &result);
+	virtual Board2 *getNextRoundBoard2();
 
 	virtual bool isLegal(Move &move, Player playerID);
-	virtual Board *makeMove(Move &move, Player playerID);
-	virtual void makeMove(Move &move, Player playerID, Board &result);
-	virtual void makeMoveOnBoard(Move &move, Player playerID);
-	virtual void applyMove(Move &move, Player playerID, Board &nextRoundBoard, Board &result);
+	virtual Board2 *makeMove(Move &move, Player playerID);
+	virtual void makeMove(Move &move, Player playerID, Board2 &result);
+	virtual void makeMoveOnBoard2(Move &move, Player playerID);
+	virtual void applyMove(Move &move, Player playerID, Board2 &nextRoundBoard2, Board2 &result);
 
-	virtual string toString(bool showBoard = false);
+	virtual string toString(bool showBoard2 = false);
 	virtual string repr();
 
 	virtual vector<Coordinate> GetCells(char type);
