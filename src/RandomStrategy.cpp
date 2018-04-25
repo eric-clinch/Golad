@@ -34,7 +34,7 @@ Move RandomStrategy::getMove(Board &board, Player playerID, Player enemyID, int 
 	if (moveType == BIRTH) {
 		// Get all dead cells
 		vector<Coordinate> deadCells = board.GetCells('.');
-		vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
+		vector<Coordinate> myCells = board.GetCells(playerID);
 
 		if (deadCells.size() == 0 || myCells.size() < 2) {
 			return Move();
@@ -50,7 +50,7 @@ Move RandomStrategy::getMove(Board &board, Player playerID, Player enemyID, int 
 
 	else {
 		assert(moveType == KILL);
-		vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
+		vector<Coordinate> enemyCells = board.GetCells(enemyID);
 		Coordinate target = RandomElementFromVector(enemyCells);
 
 		return Move(target);

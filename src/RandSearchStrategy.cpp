@@ -64,8 +64,8 @@ Move RandSearchStrategy::getMove(Board &board, Player playerID, Player enemyID, 
 	int bestScore = passMoveScore;
 	
 	vector<Coordinate> deadCells = board.GetCells('.');
-	vector<Coordinate> myCells = board.GetCells(to_string(playerID).at(0));
-	vector<Coordinate> enemyCells = board.GetCells(to_string(enemyID).at(0));
+	vector<Coordinate> myCells = board.GetCells(playerID);
+	vector<Coordinate> enemyCells = board.GetCells(enemyID);
 	vector<MoveType> availableMoveTypes = GetAvailableMoveTypes(board, playerID, enemyID);
 
 	int trials = 0;

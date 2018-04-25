@@ -6,17 +6,40 @@
 #include <stdio.h>
 using namespace std;
 
-class Coordinate
-{
+class Coordinate {
 public:
-    int x, y;
-	Coordinate();
-    Coordinate(int x, int y);
-    virtual string toString();
-	virtual string toString() const;
-	virtual bool operator== (Coordinate &other);
-	virtual bool operator== (const Coordinate &other) const;
-	virtual bool operator< (Coordinate &other);
+    unsigned char x, y;
+
+	Coordinate() {};
+
+	Coordinate(unsigned char x, unsigned char y) {
+		this->x = x;
+		this->y = y;
+	}
+
+	string toString() {
+		ostringstream stringStream;
+		stringStream << (int) x << "," << (int) y;
+		return stringStream.str();
+	}
+
+	string toString() const {
+		ostringstream stringStream;
+		stringStream << (int) x << "," << (int) y;
+		return stringStream.str();
+	}
+
+	bool operator== (Coordinate &other) {
+		return x == other.x && y == other.y;
+	}
+
+	bool operator== (const Coordinate &other) const {
+		return x == other.x && y == other.y;
+	}
+
+	bool operator< (Coordinate &other) {
+		return x < other.x || (x == other.x && y < other.y);
+	}
 };
 
 namespace std {

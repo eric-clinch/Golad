@@ -11,11 +11,11 @@ using namespace std;
 
 template<class T> class UtilityNode{
 private:
-	float totalUtility;
 
 public:
-	int numTrials;
+	float totalUtility;
 	T object;
+	unsigned short numTrials;
 
 	UtilityNode() {};
 
@@ -33,6 +33,12 @@ public:
 	void updateUtility(float trialUtility) {
 		totalUtility += trialUtility;
 		numTrials += 1;
+	}
+
+	void repurpose(T &object) {
+		this->object = object;
+		this->numTrials = 0;
+		this->totalUtility = 0;
 	}
 };
 

@@ -30,12 +30,15 @@ private:
 protected:
 
 public:
+	Bot() {};
 	Bot(Strategy *strategy);
 
 	virtual void setStrategy(Strategy *strategy);
+	virtual Strategy *getStrategy();
 
 	// Action
 	virtual Move GetMove(int time, int round);
+	virtual void cleanUp(); // must be called after GetMove is called to allow the underlying strategy to clean up its state
 
 	// Update
 	virtual void SetRound(int round);

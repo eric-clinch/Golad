@@ -2,8 +2,8 @@
 #define PLAYERENUMS_H
 
 enum Player {
-    P0 = 0,
-    P1 = 1
+	P0 = 1,
+	P1 = 2,
 };
 
 enum MoveType {

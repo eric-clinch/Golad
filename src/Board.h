@@ -26,10 +26,8 @@ using namespace std;
 
 class Board {
 private:
-	static const int width = 18;
-	static const int height = 16;
-	static const int __width__ = width + 2;
-	static const int __height__ = height + 2; // the dimensions of the 2D char array used to represent the board internally
+	int width, height;
+	int __width__, __height__; // the dimensions of the 2D char array used to represent the board internally
 	int P0CellCount, P1CellCount;
 	char **board;
 
@@ -37,10 +35,8 @@ private:
 	static void getLookupTableHelper(char *lookupTable, char **grid, int x, int y, int bot0Neighbors, int bot1Neighbors);
 	static char* getLookupTable();
 
-	virtual inline char getCell(char **board, int x, int y);
-	virtual inline void setCell(char **board, int x, int y, char c);
-	virtual inline char getCell(int x, int y);
-	virtual inline void setCell(int x, int y, char c);
+	virtual inline char charToRepr(char c);
+	virtual inline char reprToChar(char c);
 
 	virtual int getCellIndex(unsigned char cellX, unsigned char cellY);
 	virtual inline char getNextCellStatus(unsigned char cellX, unsigned char cellY);
@@ -54,6 +50,7 @@ private:
 
 public:
 	static char *simulationLookupTable;
+	static const char EMPTY = '.';
 
 	Board();
 	Board(int width, int height);

@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <vector>
+#include "UtilityNode.h"
 
 namespace Tools {
 	inline long get_time();
@@ -10,6 +11,9 @@ namespace Tools {
 
 	template <class T> inline T GetRandomElementFromVector(std::vector<T> &input);
 	template <class T> inline T PopRandomElementFromVector(std::vector<T> &input);
+
+	template <class T> bool UtilityNodePointerComparator(UtilityNode<T> *x, UtilityNode<T> *y);
+	template <class T> bool UtilityNodeComparator(UtilityNode<T> x, UtilityNode<T> y);
 }
 
 inline long Tools::get_time() {
@@ -39,6 +43,16 @@ template <class T> inline T Tools::PopRandomElementFromVector(std::vector<T> &in
 	T result = GetRandomElementFromVector(input);
 	input.pop_back();
 	return result;
+}
+
+template <class T> bool Tools::UtilityNodePointerComparator(UtilityNode<T> *x, UtilityNode<T> *y) {
+	if (x->numTrials == y->numTrials) return x->getAverageUtility() > y->getAverageUtility();
+	else return x->numTrials > y->numTrials;
+}
+
+template <class T> bool Tools::UtilityNodeComparator(UtilityNode<T> x, UtilityNode<T> y) {
+	if (x.numTrials == y.numTrials) return x.getAverageUtility() > y.getAverageUtility();
+	else return x.numTrials > y.numTrials;
 }
 
 #endif

@@ -10,73 +10,63 @@
 #define NDEBUG
 #endif
 
-#ifndef CMABSTATE_h
-#define CMABSTATE_h
+#ifndef CMABState_h
+#define CMABState_h
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <random>
 #include "UtilityNode.h"
 #include "Coordinate.h"
-#include "Move.h";
+#include "Move.h"
 #include "Evaluator.h"
 #include "MAB.h"
+#include "MoveComponents.h"
+#include "Tools.h"
 
 using namespace std;
 
-struct SharedData {
-	Evaluator *evaluator;
-	MAB<Coordinate> *coordinateMAB;
-	MAB<Move> *moveMAB;
-	float greediness;
-	default_random_engine generator;
-	uniform_real_distribution<float> uniformRealDistribution;
-
-	SharedData() {};
-
-	SharedData(Evaluator *e, MAB<Coordinate> *cMAB, MAB<Move> *mMAB, float greed) {
-		evaluator = e;
-		coordinateMAB = cMAB;
-		moveMAB = mMAB;
-		greediness = greed;
-
-		generator = default_random_engine();
-		random_device rd;
-		generator.seed(rd());
-		uniform_real_distribution<float> uniformRealDistribution(0.0, 1.0);
-	}
-};
+class CMABStateManager;
 
 class CMABState {
-private:
-	struct CoordinateAndType;
-
-	SharedData *sharedData;
-	vector<UtilityNode<Coordinate>> *targets;
-	vector<UtilityNode<Coordinate>> *sacrifices;
-	vector<UtilityNode<Move>> *moves;
-	unordered_map<Move, CMABState*> *childrenStates;
-	int numTrials;
-
-	void getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID); // constructor helper
-
-	bool isCorrectBoard(Board &board, Player playerID);
-	float exploreRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID);
-	float exploreMove(Board &board, Board &nextRoundBoard, Move &move, Player playerID, Player enemyID);
-	float exploitRound(Board &board, Board &nextRoundBoard, Player playerID, Player enemyID);
-
+	friend class CMABStateManager;
 public:
-	CMABState(Board &board, SharedData *sharedData, Player playerID, Player enemyID);
-	CMABState(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordinateMAB, MAB<Move> *moveMAB, float greediness, 
-			  Player playerID, Player enemyID);
+	CMABState(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordinateMAB, MAB<MoveComponents> *moveMAB, float nonRootGreed,
+			   Player playerID, Player enemyID, CMABStateManager *stateManager);
 	~CMABState();
 	void freeShared(); // a secondary deconstructor that should only be called on one of the CMABStates in the state tree when freeing the game tree
 
-	// is a destructive function on both the board and empty board given
-	float CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID);
-	Move getBestMove();
-
+	void setStateManager(CMABStateManager *stateManager);
+	float CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID); // is a destructive function on both the board and empty board given
+	Move getBestMove(float *bestScore, Board &board);
+	Move getBestMove(float *bestScore, CMABState *other, Board &board);
+	int getMovesExplored();
+	void setGreed(float greed);
 	void printTree(int depth = 0);
+	void doAnalysis(CMABState *other);
+
+private:
+	struct SharedData;
+
+	SharedData *sharedData;
+	UtilityNode<Coordinate> **coordinateNodes;
+	vector<UtilityNode<Coordinate>*> *targets;
+	vector<UtilityNode<Coordinate>*> *sacrifices;
+	vector<UtilityNode<MoveComponents>> *moves;
+	unordered_map<Move, CMABState*> *childrenStates;
+	Board *nextRoundBoard;
+	int numTrials;
+	float greediness;
+
+	CMABState(Board &board, SharedData *sharedData, Player playerID, Player enemyID);
+	void repurposeNode(Board &board, Player playerID, Player enemyID);
+	void getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool allocateMemory); // constructor helper
+
+	bool isCorrectBoard(Board &board, Player playerID);
+	float exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID);
+	float exploreMove(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MoveComponents &moveComponents);
+	float exploitRound(Board &board, Board &nextRoundBoard, Player playerID, Player enemyID);
 };
 
 #endif
