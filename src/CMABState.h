@@ -50,7 +50,8 @@ private:
 	struct SharedData;
 
 	SharedData *sharedData;
-	UtilityNode<Coordinate> **coordinateNodes;
+
+	vector<UtilityNode<Coordinate>*> *coordinateNodes;
 	vector<UtilityNode<Coordinate>*> *targets;
 	vector<UtilityNode<Coordinate>*> *sacrifices;
 	vector<UtilityNode<MoveComponents>> *moves;
@@ -58,10 +59,12 @@ private:
 	Board *nextRoundBoard;
 	int numTrials;
 	float greediness;
+	int lazySearchIndex;
 
 	CMABState(Board &board, SharedData *sharedData, Player playerID, Player enemyID);
 	void repurposeNode(Board &board, Player playerID, Player enemyID);
-	void getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool allocateMemory); // constructor helper
+	UtilityNode<Coordinate> *getCoordinateNode(int index, Coordinate &coordinate);
+	MoveComponents getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool *returnIsValid); // constructor helper
 
 	bool isCorrectBoard(Board &board, Player playerID);
 	float exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID);

@@ -3,6 +3,7 @@
 #define MAB_h
 
 #include "UtilityNode.h"
+#include "UtilityHeap.h"
 
 template <class T> class MAB {
 public:

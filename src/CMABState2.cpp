@@ -56,39 +56,67 @@ bool CMABState2::isCorrectBoard(Board &board, Player playerID) {
 	return true;
 }
 
-void CMABState2::getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool allocateMemory) {
+UtilityNode<Coordinate> *CMABState2::getCoordinateNode(int index, Coordinate &coordinate) {
+	if (index < coordinateNodes->size()) {
+		UtilityNode<Coordinate> *result = (*coordinateNodes)[index];
+		result->repurpose(coordinate);
+		return result;
+	}
+	else {
+		UtilityNode<Coordinate> *result = new UtilityNode<Coordinate>(coordinate);
+		coordinateNodes->push_back(result);
+		return result;
+	}
+}
+
+MoveComponents CMABState2::getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool *returnIsValid) {
 	int width = board.getWidth();
 	int height = board.getHeight();
 	int numPlayerCells = board.getPlayerCellCount(playerID);
 
-	if (allocateMemory) {
-		this->targets = new vector<UtilityNode<Coordinate>*>();
-		this->sacrifices = new vector<UtilityNode<Coordinate>*>();
+	if (lazySearchIndex >= width * height) {
+		*returnIsValid = false;
+		return MoveComponents();
 	}
+	
+	*returnIsValid = true;
+	UtilityNode<Coordinate> *sacrifice1 = NULL;
+	UtilityNode<Coordinate> *sacrifice2 = NULL;
+	UtilityNode<Coordinate> *birthTarget = NULL;
 
-	for (int x = 0; x < width; x++) {
-		for (int y = 0; y < height; y++) {
-			Coordinate c = Coordinate(x, y);
-			char type = board.getCoordinateType(x, y);
-			if (type == playerID) {
-				UtilityNode<Coordinate> *cNode = coordinateNodes[x * height + y];
-				cNode->repurpose(c);
-				sacrifices->push_back(cNode);
+	while (lazySearchIndex < width * height) {
+		int x = lazySearchIndex / height;
+		int y = lazySearchIndex % height;
+		lazySearchIndex++;
+
+		Coordinate c = Coordinate(x, y);
+		char type = board.getCoordinateType(x, y);
+		if (type == playerID) {
+			UtilityNode<Coordinate> *cNode = getCoordinateNode(lazySearchIndex - 1, c);
+			sacrifices->push_back(cNode);
+			if (sacrifice1 == NULL) sacrifice1 = cNode;
+			else if (sacrifice2 == NULL) sacrifice2 = cNode;
+			else if (birthTarget != NULL) return MoveComponents(birthTarget, sacrifice1, sacrifice2);
+		}
+		else {
+			if (type == enemyID) {
+				UtilityNode<Coordinate> *cNode = getCoordinateNode(lazySearchIndex - 1, c);
+				targets->push_back(cNode);
+				return MoveComponents(cNode);
 			}
-			else {
-				if (type == enemyID || numPlayerCells > 2) {
-					// if the cell is an enemy cell, then the move is a kill move which is always legal
-					// otherwise the move is a sacrifice move, which is only legal/viable when the
-					// number of player cells is greater than 2
-					UtilityNode<Coordinate> *cNode = coordinateNodes[x * height + y];
-					cNode->repurpose(c);
-					targets->push_back(cNode);
-				}
+			else if (numPlayerCells > 2) {
+				// The move is a sacrifice move, which is only legal/viable when the
+				// number of player cells is greater than 2
+				UtilityNode<Coordinate> *cNode = getCoordinateNode(lazySearchIndex - 1, c);
+				targets->push_back(cNode);
+				birthTarget = cNode;
+				if (sacrifice2 != NULL) return MoveComponents(birthTarget, sacrifice1, sacrifice2);
 			}
 		}
 	}
-	//this->targets->shrink_to_fit();
-	//this->sacrifices->shrink_to_fit();
+
+	*returnIsValid = false;
+	return MoveComponents();
 }
 
 CMABState2::CMABState2(Board &board, SharedData *sharedData, Player playerID, Player enemyID) {
@@ -98,11 +126,10 @@ CMABState2::CMABState2(Board &board, SharedData *sharedData, Player playerID, Pl
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
 	this->greediness = sharedData->nonRootGreed;
-
-	int cells = board.getHeight() * board.getWidth();
-	this->coordinateNodes = new UtilityNode<Coordinate>*[cells];
-	for (int i = 0; i < cells; i++) coordinateNodes[i] = new UtilityNode<Coordinate>();
-	getTargetsAndSacrifices(board, playerID, enemyID, true);
+	this->coordinateNodes = new vector<UtilityNode<Coordinate>*>();
+	this->sacrifices = new vector<UtilityNode<Coordinate>*>();
+	this->targets = new vector<UtilityNode<Coordinate>*>();
+	this->lazySearchIndex = 0;
 
 	assert(isCorrectBoard(board, playerID));
 }
@@ -115,36 +142,37 @@ CMABState2::CMABState2(Board &board, Evaluator *evaluator, MAB<Coordinate> *coor
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
 	this->greediness = nonRootGreed;
-
-	int cells = board.getHeight() * board.getWidth();
-	this->coordinateNodes = new UtilityNode<Coordinate>*[cells];
-	for (int i = 0; i < cells; i++) coordinateNodes[i] = new UtilityNode<Coordinate>();
-	getTargetsAndSacrifices(board, playerID, enemyID, true);
+	this->coordinateNodes = new vector<UtilityNode<Coordinate>*>();
+	this->sacrifices = new vector<UtilityNode<Coordinate>*>();
+	this->targets = new vector<UtilityNode<Coordinate>*>();
+	this->lazySearchIndex = 0;
 
 	assert(isCorrectBoard(board, playerID));
 }
 
 void CMABState2::repurposeNode(Board &board, Player playerID, Player enemyID) {
 	targets->clear();
-	sacrifices->clear();
+	sacrifices->clear();	
+	
 	childrenStates->clear();
 	moves->clear();
 
 	board.setNextRoundBoard(*this->nextRoundBoard);
 	this->numTrials = 0;
 	this->greediness = sharedData->nonRootGreed; // this might not be necessary
-	getTargetsAndSacrifices(board, playerID, enemyID, false);
+	this->lazySearchIndex = 0;
 	assert(isCorrectBoard(board, playerID));
 }
 
 CMABState2::~CMABState2() {
-	for (int i = 0; i < 16 * 18; i++) {
-		delete coordinateNodes[i];
+	for (int i = 0; i < coordinateNodes->size(); i++) {
+		delete (*coordinateNodes)[i];
 	}
 	delete coordinateNodes;
 
 	delete targets;
 	delete sacrifices;
+
 	delete moves;
 
 	delete childrenStates;
@@ -161,7 +189,6 @@ float CMABState2::CMABRound(Board &board, Board &emptyBoard, Player playerID, Pl
 	if (board.gameIsOver()) {
 		return sharedData->evaluator->evaluate(board, playerID, enemyID);
 	}
-	assert(targets->size() > 0);
 
 	float rand = sharedData->uniformRealDistribution(sharedData->generator);
 	if (moves->size() == 0 || rand > greediness) {
@@ -189,30 +216,33 @@ template <class T> T remove(vector<T> &v, int i) {
 
 float CMABState2::exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
 	// select the move to explore
-	int targetIndex = sharedData->coordinateMAB->getChoice(*targets, numTrials);
-	UtilityNode<Coordinate> *targetNode = (*targets)[targetIndex];
-	MoveComponents moveComponents;
+	bool moveIsValid;
+	MoveComponents moveComponents = getTargetsAndSacrifices(board, playerID, enemyID, &moveIsValid);
 
-	if (board.getCoordinateType(targetNode->object) == '.') {
-		// the move will be a sacrifice move
-		int sacrificeIndex1 = sharedData->coordinateMAB->getChoice(*sacrifices, numTrials);
-		UtilityNode<Coordinate> *sacrificeNode1 = remove(*sacrifices, sacrificeIndex1); // remove it so we don't choose it twice
-		int sacrificeIndex2 = sharedData->coordinateMAB->getChoice(*sacrifices, numTrials);
-		UtilityNode<Coordinate> *sacrificeNode2 = (*sacrifices)[sacrificeIndex2];
-		sacrifices->push_back(sacrificeNode1);
+	if (!moveIsValid) {
+		int targetIndex = sharedData->coordinateMAB->getChoice(*targets, numTrials);
+		UtilityNode<Coordinate> *targetNode = (*targets)[targetIndex];
 
-		moveComponents = MoveComponents(targetNode, sacrificeNode1, sacrificeNode2);
+		if (board.getCoordinateType(targetNode->object) == Board::EMPTY) {
+			// the move will be a sacrifice move
+			int sacrificeIndex1 = sharedData->coordinateMAB->getChoice(*sacrifices, numTrials);
+			UtilityNode<Coordinate> *sacrificeNode1 = remove(*sacrifices, sacrificeIndex1); // remove it so we don't choose it twice
+			int sacrificeIndex2 = sharedData->coordinateMAB->getChoice(*sacrifices, numTrials);
+			UtilityNode<Coordinate> *sacrificeNode2 = (*sacrifices)[sacrificeIndex2];
+			sacrifices->push_back(sacrificeNode1);
+
+			moveComponents = MoveComponents(targetNode, sacrificeNode1, sacrificeNode2);
+		}
+		else {
+			// the move will be a kill move
+			moveComponents = MoveComponents(targetNode);
+		}
+
+		if (childrenStates->count(moveComponents.move) != 0) {
+			// this move has already been explored, so just use this round as an exploit round
+			return exploitRound(board, moveResultBoard, playerID, enemyID);
+		}
 	}
-	else {
-		// the move will be a kill move
-		moveComponents = MoveComponents(targetNode);
-	}
-
-	if (childrenStates->count(moveComponents.move) != 0) {
-		// this move has already been explored, so just use this round as an exploit round
-		return exploitRound(board, moveResultBoard, playerID, enemyID);
-	}
-
 	return exploreMove(board, moveResultBoard, playerID, enemyID, moveComponents);
 }
 
@@ -231,12 +261,8 @@ float CMABState2::exploreMove(Board &board, Board &moveResultBoard, Player playe
 }
 
 float CMABState2::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
-	return exploitRound(board, moveResultBoard, playerID, enemyID, sharedData->moveMAB);
-}
-
-float CMABState2::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB) {
 	assert(moves->size() > 0);
-	int moveNodeIndex = moveMAB->getChoice(*moves, numTrials);
+	int moveNodeIndex = sharedData->moveMAB->getChoice(*moves, numTrials);
 	UtilityNode<MoveComponents> &moveNode = (*moves)[moveNodeIndex];
 
 	assert(board.isLegal(moveNode.object.move, playerID));
@@ -302,14 +328,6 @@ Move CMABState2::getBestMove(float *bestScore, CMABState2 *other, Board &board) 
 
 	*bestScore = highestScore;
 	return bestMove;
-
-	//float score1;
-	//Move move1 = getBestMove(&score1, board);
-	//float score2;
-	//Move move2 = getBestMove(&score2, board);
-
-	//*bestScore = score1 > score2 ? score1 : score2;
-	//return move1;
 }
 
 int CMABState2::getMovesExplored() {
@@ -348,71 +366,4 @@ void CMABState2::doAnalysis(CMABState2 *other) {
 		cerr << (*other->targets)[i]->object.toString() << " score: " << (*other->targets)[i]->numTrials << "\n";
 	}
 	cerr << "\n\n";
-}
-
-vector<Move> CMABState2::getTopMoves(int numMoves) {
-	sort(moves->begin(), moves->end(), Tools::UtilityNodeComparator<MoveComponents>);
-	vector<Move> topMoves;
-	for(int i = 0; i < numMoves && i < moves->size(); i++) {
-		topMoves.push_back((*moves)[i].object.move);
-	}
-	return topMoves;
-}
-
-MoveComponents moveToMoveComponents(Move move, unordered_map<Coordinate, UtilityNode<Coordinate>*> coordinateNodes) {
-	if (move.MoveType == BIRTH) {
-		UtilityNode<Coordinate> *targetNode = coordinateNodes[move.target];
-		UtilityNode<Coordinate> *sacrificeNode1 = coordinateNodes[move.sacrifice1];
-		UtilityNode<Coordinate> *sacrificeNode2 = coordinateNodes[move.sacrifice2];
-		return MoveComponents(targetNode, sacrificeNode1, sacrificeNode2);
-	}
-	else {
-		UtilityNode<Coordinate> *targetNode = coordinateNodes[move.target];
-		return MoveComponents(targetNode);
-	}
-}
-
-void CMABState2::setMoves(vector<Move> topMoves, Board &board, Board &emptyBoard, Player playerID, Player enemyID) {
-	// maps each coordinate to its corresponding utility node
-	unordered_map<Coordinate, UtilityNode<Coordinate>*> coordinateNodes;
-	for (int i = 0; i < sacrifices->size(); i++) {
-		coordinateNodes[(*sacrifices)[i]->object] = (*sacrifices)[i];
-	}
-	for (int i = 0; i < targets->size(); i++) {
-		coordinateNodes[(*targets)[i]->object] = (*targets)[i];
-	}
-
-	// remove all moves other than the top moves
-	unordered_set<Move> topMovesSet;
-	for (int i = 0; i < topMoves.size(); i++) {
-		topMovesSet.emplace(topMoves[i]);
-	}
-	vector<UtilityNode<MoveComponents>> topMoveComponents;
-	for (int i = 0; i < moves->size(); i++) {
-		if (topMovesSet.count((*moves)[i].object.move) != 0) topMoveComponents.push_back((*moves)[i]);
-	}
-	moves->clear();
-	for (int i = 0; i < topMoveComponents.size(); i++) {
-		moves->push_back(topMoveComponents[i]);
-	}
-
-	// store the children states corresponding to the top moves
-	vector<CMABState2*> newChildren;
-	for (int i = 0; i < topMoves.size(); i++) {
-		Move move = topMoves[i];
-		MoveComponents moveComponents = moveToMoveComponents(move, coordinateNodes);
-		if (childrenStates->count(move) == 0) {
-			exploreMove(board, emptyBoard, playerID, enemyID, moveComponents);
-		}
-		assert(childrenStates->count(move) != 0);
-
-		newChildren.push_back((*childrenStates)[move]);
-	}
-
-	// remove all the children states, and then readd the ones 
-	// corresponding to the top moves
-	childrenStates->clear();
-	for (int i = 0; i < newChildren.size(); i++) {
-		(*childrenStates)[topMoves[i]] = newChildren[i];
-	}
 }

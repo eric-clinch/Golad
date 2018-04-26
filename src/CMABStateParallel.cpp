@@ -1,21 +1,21 @@
 
-#include "CMABState.h"
-#include "CMABStateManager.h"
+#include "CMABStateParallel.h"
+#include "CMABStateParallelManager.h"
 
 using namespace std;
 
-struct CMABState::SharedData {
+struct CMABStateParallel::SharedData {
 	Evaluator *evaluator;
 	MAB<Coordinate> *coordinateMAB;
 	MAB<MoveComponents> *moveMAB;
 	float nonRootGreed;
 	default_random_engine generator;
 	uniform_real_distribution<float> uniformRealDistribution;
-	CMABStateManager *stateManager;
+	CMABStateParallelManager *stateManager;
 
 	SharedData() {};
 
-	SharedData(Evaluator *e, MAB<Coordinate> *cMAB, MAB<MoveComponents> *mMAB, float greed, CMABStateManager *stateManager) {
+	SharedData(Evaluator *e, MAB<Coordinate> *cMAB, MAB<MoveComponents> *mMAB, float greed, CMABStateParallelManager *stateManager) {
 		evaluator = e;
 		coordinateMAB = cMAB;
 		moveMAB = mMAB;
@@ -29,14 +29,14 @@ struct CMABState::SharedData {
 	}
 };
 
-void CMABState::setStateManager(CMABStateManager *stateManager) {
+void CMABStateParallel::setStateManager(CMABStateParallelManager *stateManager) {
 	this->sharedData->stateManager = stateManager;
 }
 
 // returns whether the given board matches what we believe it should look like.
-// Each CMABState should have a unique board associated with it, and this checks
+// Each CMABStateParallel should have a unique board associated with it, and this checks
 // whether or not the given board is that unique board.
-bool CMABState::isCorrectBoard(Board &board, Player playerID) {
+bool CMABStateParallel::isCorrectBoard(Board &board, Player playerID) {
 	for (int i = 0; i < targets->size(); i++) {
 		UtilityNode<Coordinate> *node = (*targets)[i];
 		Coordinate c = node->object;
@@ -56,7 +56,7 @@ bool CMABState::isCorrectBoard(Board &board, Player playerID) {
 	return true;
 }
 
-UtilityNode<Coordinate> *CMABState::getCoordinateNode(int index, Coordinate &coordinate) {
+UtilityNode<Coordinate> *CMABStateParallel::getCoordinateNode(int index, Coordinate &coordinate) {
 	if (index < coordinateNodes->size()) {
 		UtilityNode<Coordinate> *result = (*coordinateNodes)[index];
 		result->repurpose(coordinate);
@@ -69,7 +69,7 @@ UtilityNode<Coordinate> *CMABState::getCoordinateNode(int index, Coordinate &coo
 	}
 }
 
-MoveComponents CMABState::getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool *returnIsValid) {
+MoveComponents CMABStateParallel::getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool *returnIsValid) {
 	int width = board.getWidth();
 	int height = board.getHeight();
 	int numPlayerCells = board.getPlayerCellCount(playerID);
@@ -78,7 +78,7 @@ MoveComponents CMABState::getTargetsAndSacrifices(Board &board, Player playerID,
 		*returnIsValid = false;
 		return MoveComponents();
 	}
-	
+
 	*returnIsValid = true;
 	UtilityNode<Coordinate> *sacrifice1 = NULL;
 	UtilityNode<Coordinate> *sacrifice2 = NULL;
@@ -119,10 +119,10 @@ MoveComponents CMABState::getTargetsAndSacrifices(Board &board, Player playerID,
 	return MoveComponents();
 }
 
-CMABState::CMABState(Board &board, SharedData *sharedData, Player playerID, Player enemyID) {
+CMABStateParallel::CMABStateParallel(Board &board, SharedData *sharedData, Player playerID, Player enemyID) {
 	this->sharedData = sharedData;
 	this->moves = new vector<UtilityNode<MoveComponents>>();
-	this->childrenStates = new unordered_map<Move, CMABState*>();
+	this->childrenStates = new unordered_map<Move, CMABStateParallel*>();
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
 	this->greediness = sharedData->nonRootGreed;
@@ -134,11 +134,11 @@ CMABState::CMABState(Board &board, SharedData *sharedData, Player playerID, Play
 	assert(isCorrectBoard(board, playerID));
 }
 
-CMABState::CMABState(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordinateMAB, MAB<MoveComponents> *moveMAB, float nonRootGreed,
-					   Player playerID, Player enemyID, CMABStateManager *stateManager) {
+CMABStateParallel::CMABStateParallel(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordinateMAB, MAB<MoveComponents> *moveMAB, float nonRootGreed,
+	Player playerID, Player enemyID, CMABStateParallelManager *stateManager) {
 	sharedData = new SharedData(evaluator, coordinateMAB, moveMAB, nonRootGreed, stateManager);
 	this->moves = new vector<UtilityNode<MoveComponents>>();
-	this->childrenStates = new unordered_map<Move, CMABState*>();
+	this->childrenStates = new unordered_map<Move, CMABStateParallel*>();
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
 	this->greediness = nonRootGreed;
@@ -150,10 +150,10 @@ CMABState::CMABState(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordi
 	assert(isCorrectBoard(board, playerID));
 }
 
-void CMABState::repurposeNode(Board &board, Player playerID, Player enemyID) {
+void CMABStateParallel::repurposeNode(Board &board, Player playerID, Player enemyID) {
 	targets->clear();
-	sacrifices->clear();	
-	
+	sacrifices->clear();
+
 	childrenStates->clear();
 	moves->clear();
 
@@ -164,7 +164,7 @@ void CMABState::repurposeNode(Board &board, Player playerID, Player enemyID) {
 	assert(isCorrectBoard(board, playerID));
 }
 
-CMABState::~CMABState() {
+CMABStateParallel::~CMABStateParallel() {
 	for (int i = 0; i < coordinateNodes->size(); i++) {
 		delete (*coordinateNodes)[i];
 	}
@@ -179,11 +179,11 @@ CMABState::~CMABState() {
 	delete nextRoundBoard;
 }
 
-void CMABState::freeShared() {
+void CMABStateParallel::freeShared() {
 	delete sharedData;
 }
 
-float CMABState::CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID) {
+float CMABStateParallel::CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID) {
 	numTrials++;
 	assert(isCorrectBoard(board, playerID));
 	if (board.gameIsOver()) {
@@ -214,7 +214,7 @@ template <class T> T remove(vector<T> &v, int i) {
 	return res;
 }
 
-float CMABState::exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
+float CMABStateParallel::exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
 	// select the move to explore
 	bool moveIsValid;
 	MoveComponents moveComponents = getTargetsAndSacrifices(board, playerID, enemyID, &moveIsValid);
@@ -246,7 +246,7 @@ float CMABState::exploreRound(Board &board, Board &moveResultBoard, Player playe
 	return exploreMove(board, moveResultBoard, playerID, enemyID, moveComponents);
 }
 
-float CMABState::exploreMove(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MoveComponents &moveComponents) {
+float CMABStateParallel::exploreMove(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MoveComponents &moveComponents) {
 	assert(board.isLegal(moveComponents.move, playerID));
 	assert(childrenStates->count(moveComponents.move) == 0);
 	board.applyMove(moveComponents.move, playerID, *nextRoundBoard, moveResultBoard);
@@ -260,9 +260,13 @@ float CMABState::exploreMove(Board &board, Board &moveResultBoard, Player player
 	return moveEvaluation;
 }
 
-float CMABState::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
+float CMABStateParallel::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
+	return exploitRound(board, moveResultBoard, playerID, enemyID, sharedData->moveMAB);
+}
+
+float CMABStateParallel::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB) {
 	assert(moves->size() > 0);
-	int moveNodeIndex = sharedData->moveMAB->getChoice(*moves, numTrials);
+	int moveNodeIndex = moveMAB->getChoice(*moves, numTrials);
 	UtilityNode<MoveComponents> &moveNode = (*moves)[moveNodeIndex];
 
 	assert(board.isLegal(moveNode.object.move, playerID));
@@ -270,7 +274,7 @@ float CMABState::exploitRound(Board &board, Board &moveResultBoard, Player playe
 	board.applyMove(move, playerID, *nextRoundBoard, moveResultBoard);
 
 	assert(childrenStates->find(moveNode.object.move) != childrenStates->end());
-	CMABState *childState = (*childrenStates)[move];
+	CMABStateParallel *childState = (*childrenStates)[move];
 	if (childState == NULL) {
 		childState = sharedData->stateManager->getState(moveResultBoard, sharedData, enemyID, playerID);
 		(*childrenStates)[move] = childState;
@@ -282,7 +286,7 @@ float CMABState::exploitRound(Board &board, Board &moveResultBoard, Player playe
 	return moveEvaluation;
 }
 
-Move CMABState::getBestMove(float *bestScore, Board &board) {
+Move CMABStateParallel::getBestMove(float *bestScore, Board &board) {
 	assert(moves->size() > 0);
 	UtilityNode<MoveComponents> bestMoveNode = (*moves)[0];
 	int highestCount = bestMoveNode.numTrials;
@@ -299,7 +303,7 @@ Move CMABState::getBestMove(float *bestScore, Board &board) {
 	return bestMoveNode.object.move;
 }
 
-Move CMABState::getBestMove(float *bestScore, CMABState *other, Board &board) {
+Move CMABStateParallel::getBestMove(float *bestScore, CMABStateParallel *other, Board &board) {
 	unordered_map<Move, int> moveScores;
 	int highestScore = 0;
 	Move bestMove;
@@ -328,23 +332,31 @@ Move CMABState::getBestMove(float *bestScore, CMABState *other, Board &board) {
 
 	*bestScore = highestScore;
 	return bestMove;
+
+	//float score1;
+	//Move move1 = getBestMove(&score1, board);
+	//float score2;
+	//Move move2 = getBestMove(&score2, board);
+
+	//*bestScore = score1 > score2 ? score1 : score2;
+	//return move1;
 }
 
-int CMABState::getMovesExplored() {
+int CMABStateParallel::getMovesExplored() {
 	return moves->size();
 }
 
-void CMABState::setGreed(float greed) {
+void CMABStateParallel::setGreed(float greed) {
 	this->greediness = greed;
 }
 
-void CMABState::printTree(int depth) {
+void CMABStateParallel::printTree(int depth) {
 	for (UtilityNode<MoveComponents> moveNode : *moves) {
 		for (int i = 0; i < depth; i++) {
 			cerr << ".\t";
 		}
 		cerr << moveNode.numTrials << ", " << moveNode.getAverageUtility() << ", " << moveNode.object.move.toString() << "\n";
-		CMABState *child = (*childrenStates)[moveNode.object.move];
+		CMABStateParallel *child = (*childrenStates)[moveNode.object.move];
 		if (child != NULL) {
 			child->printTree(depth + 1);
 		}
@@ -354,7 +366,7 @@ void CMABState::printTree(int depth) {
 	}
 }
 
-void CMABState::doAnalysis(CMABState *other) {
+void CMABStateParallel::doAnalysis(CMABStateParallel *other) {
 	sort(targets->begin(), targets->end(), Tools::UtilityNodePointerComparator<Coordinate>);
 	sort(other->targets->begin(), other->targets->end(), Tools::UtilityNodePointerComparator<Coordinate>);
 
@@ -366,4 +378,71 @@ void CMABState::doAnalysis(CMABState *other) {
 		cerr << (*other->targets)[i]->object.toString() << " score: " << (*other->targets)[i]->numTrials << "\n";
 	}
 	cerr << "\n\n";
+}
+
+vector<Move> CMABStateParallel::getTopMoves(int numMoves) {
+	sort(moves->begin(), moves->end(), Tools::UtilityNodeComparator<MoveComponents>);
+	vector<Move> topMoves;
+	for(int i = 0; i < numMoves && i < moves->size(); i++) {
+		topMoves.push_back((*moves)[i].object.move);
+	}
+	return topMoves;
+}
+
+MoveComponents moveToMoveComponents(Move move, unordered_map<Coordinate, UtilityNode<Coordinate>*> coordinateNodes) {
+	if (move.MoveType == BIRTH) {
+		UtilityNode<Coordinate> *targetNode = coordinateNodes[move.target];
+		UtilityNode<Coordinate> *sacrificeNode1 = coordinateNodes[move.sacrifice1];
+		UtilityNode<Coordinate> *sacrificeNode2 = coordinateNodes[move.sacrifice2];
+		return MoveComponents(targetNode, sacrificeNode1, sacrificeNode2);
+	}
+	else {
+		UtilityNode<Coordinate> *targetNode = coordinateNodes[move.target];
+		return MoveComponents(targetNode);
+	}
+}
+
+void CMABStateParallel::setMoves(vector<Move> topMoves, Board &board, Board &emptyBoard, Player playerID, Player enemyID) {
+	// maps each coordinate to its corresponding utility node
+	unordered_map<Coordinate, UtilityNode<Coordinate>*> coordinateNodes;
+	for (int i = 0; i < sacrifices->size(); i++) {
+		coordinateNodes[(*sacrifices)[i]->object] = (*sacrifices)[i];
+	}
+	for (int i = 0; i < targets->size(); i++) {
+		coordinateNodes[(*targets)[i]->object] = (*targets)[i];
+	}
+
+	// remove all moves other than the top moves
+	unordered_set<Move> topMovesSet;
+	for (int i = 0; i < topMoves.size(); i++) {
+		topMovesSet.emplace(topMoves[i]);
+	}
+	vector<UtilityNode<MoveComponents>> topMoveComponents;
+	for (int i = 0; i < moves->size(); i++) {
+		if (topMovesSet.count((*moves)[i].object.move) != 0) topMoveComponents.push_back((*moves)[i]);
+	}
+	moves->clear();
+	for (int i = 0; i < topMoveComponents.size(); i++) {
+		moves->push_back(topMoveComponents[i]);
+	}
+
+	// store the children states corresponding to the top moves
+	vector<CMABStateParallel*> newChildren;
+	for (int i = 0; i < topMoves.size(); i++) {
+		Move move = topMoves[i];
+		MoveComponents moveComponents = moveToMoveComponents(move, coordinateNodes);
+		if (childrenStates->count(move) == 0) {
+			exploreMove(board, emptyBoard, playerID, enemyID, moveComponents);
+		}
+		assert(childrenStates->count(move) != 0);
+
+		newChildren.push_back((*childrenStates)[move]);
+	}
+
+	// remove all the children states, and then readd the ones 
+	// corresponding to the top moves
+	childrenStates->clear();
+	for (int i = 0; i < newChildren.size(); i++) {
+		(*childrenStates)[topMoves[i]] = newChildren[i];
+	}
 }

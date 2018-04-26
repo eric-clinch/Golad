@@ -27,7 +27,7 @@ int StrategyTesting::playMatch(Bot bot0, Bot bot1, bool verbose) {
 	bot0.SetYourBotId(P0);
 	bot1.SetYourBotId(P1);
 
-	float serverRatio = .82;
+	float serverRatio = .5;
 	int bot0Time = 10000 * serverRatio;
 	int bot1Time = 10000 * serverRatio;
 	int timePerMove = 100 * serverRatio;
@@ -87,7 +87,6 @@ int StrategyTesting::playMatch(Bot bot0, Bot bot1, bool verbose) {
 
 	int P0Count = board.getPlayerCellCount(P0);
 	int P1Count = board.getPlayerCellCount(P1);
-	if (P0Count == 0 || P1Count == 0) cout << "game was completed\n";
 	if (P0Count == P1Count) return -1; // tie
 	return P0Count > P1Count ? 0 : 1;
 }

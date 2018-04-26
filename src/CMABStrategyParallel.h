@@ -10,37 +10,39 @@
 #define NDEBUG
 #endif
 
-#ifndef CMABStrategy2_h
-#define CMABStrategy2_h
+#ifndef CMABStrategyParallel_h
+#define CMABStrategyParallel_h
 
 #include <pthread.h>
+#include <unordered_set>
 #include "Strategy.h"
 #include "Evaluator.h"
 #include "MAB.h"
-#include "CMABState2.h"
-#include "CMABState2Manager.h"
+#include "CMABStateParallel.h"
+#include "CMABStateParallelManager.h"
 #include "MoveComponents.h"
 #include "Tools.h"
 
-class CMABStrategy2 : public Strategy {
+class CMABStrategyParallel : public Strategy {
 private:
 	Evaluator * evaluator;
 	MAB<MoveComponents> *moveMAB;
+	MAB<MoveComponents> *secondaryMoveMAB;
 	MAB<Coordinate> *coordinateMAB;
 	float greediness;
 	float alpha;
-	bool parallel;
+	float exploreTimeRatio;
+	int topMoveNum;
 	long previousTimeEnd;
-	static void *freeTree(void *arg);
-	static void *freeTrees(void *arg);
 	static void *developTree(void *arg);
-	CMABState2Manager *stateManager1;
-	CMABState2Manager *stateManager2;
+	static void *exploitTree(void *arg);
+	CMABStateParallelManager *stateManager1;
+	CMABStateParallelManager *stateManager2;
 
 public:
-	CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<Coordinate> *coordinateMAB, float greediness, 
-				  float alpha, bool parallel=false);
-	~CMABStrategy2();
+	CMABStrategyParallel(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<Coordinate> *coordinateMAB, MAB<MoveComponents> *secondaryMoveMAB,
+				  float greediness, float alpha, float exploreTimeRatio, int topMoveNum);
+	~CMABStrategyParallel();
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 	virtual void cleanUp();
 	virtual string toString();

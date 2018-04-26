@@ -85,7 +85,7 @@ struct CMABParameters {
 
 	Strategy *getStrategy() {
 		RatioEvaluator *evaluator = new RatioEvaluator();
-		Strategy *strategy = new CMABStrategy2(evaluator, moveMAB->object, coordinateMAB->object, secondaryMoveMAB->object,
+		Strategy *strategy = new CMABStrategyParallel(evaluator, moveMAB->object, coordinateMAB->object, secondaryMoveMAB->object,
 											   greed->object, alpha->object, timeSplit->object, topMoveNum->object);
 		return strategy;
 	}
