@@ -1,23 +1,21 @@
 
 #include "CMABStrategy2.h"
 
-CMABStrategy2::CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<Coordinate> *coordinateMAB, 
-							 float greediness, float alpha, bool parallel) {
+CMABStrategy2::CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<MoveComponents> *rootMAB, 
+							 MAB<Coordinate> *coordinateMAB, float greediness, float alpha) {
 	this->evaluator = evaluator;
 	this->moveMAB = moveMAB;
+	this->rootMAB = rootMAB;
 	this->coordinateMAB = coordinateMAB;
 	this->greediness = greediness;
 	this->alpha = alpha;
 	this->previousTimeEnd = Tools::get_time();
-	this->parallel = parallel;
 	this->stateManager1 = NULL;
-	this->stateManager2 = NULL;
 }
 
 CMABStrategy2::~CMABStrategy2() {
 	delete evaluator;
 	delete stateManager1;
-	delete stateManager2;
 }
 
 struct FreeTreesArgs {
@@ -50,53 +48,6 @@ void *CMABStrategy2::freeTrees(void *arg) {
 	return NULL;
 }
 
-struct DevelopTreeArgs {
-	CMABState2 *MCTree;
-	long timeToUse;
-	float alpha;
-	int *counter;
-	Board *board;
-	Player playerID;
-	Player enemyID;
-
-	DevelopTreeArgs(CMABState2 *MCTree, Board *board, long timeToUse, float alpha, int *count, Player playerID, Player enemyID) {
-		this->MCTree = MCTree;
-		this->timeToUse = timeToUse;
-		this->alpha = alpha;
-		this->counter = count;
-		this->board = board;
-		this->playerID = playerID;
-		this->enemyID = enemyID;
-	}
-};
-
-void *CMABStrategy2::developTree(void *arg) {
-	long startTime = Tools::get_time();
-	DevelopTreeArgs *developTreeArgs = (DevelopTreeArgs*)arg;
-	CMABState2 *MCTree = developTreeArgs->MCTree;
-	long timeToUse = developTreeArgs->timeToUse;
-	float alpha = developTreeArgs->alpha;
-	int *counter = developTreeArgs->counter;
-	Board &board = *developTreeArgs->board;
-	Player playerID = developTreeArgs->playerID;
-	Player enemyID = developTreeArgs->enemyID;
-
-	Board copiedBoard(board.getWidth(), board.getHeight());
-	Board emptyBoard(board.getWidth(), board.getHeight());
-
-	int count = 0;
-	for (long currentTime = Tools::get_time(); currentTime - startTime < timeToUse; currentTime = Tools::get_time()) {
-		board.copyInto(copiedBoard);
-		float exploration = (float)1 / (1 + alpha * count);
-		MCTree->setGreed(1 - exploration);
-		MCTree->CMABRound(copiedBoard, emptyBoard, playerID, enemyID);
-		count++;
-	}
-
-	*counter = count;
-	return MCTree;
-}
-
 Move CMABStrategy2::getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round) {
 	long startTime = Tools::get_time();
 	long timePassed = Tools::get_time() - previousTimeEnd;
@@ -113,63 +64,46 @@ Move CMABStrategy2::getMove(Board &board, Player playerID, Player enemyID, int t
 	if (stateManager1 == NULL) {
 		assert(stateManager2 == NULL);
 		stateManager1 = new CMABState2Manager(board, evaluator, coordinateMAB, moveMAB, greediness, playerID, enemyID);
-		stateManager2 = new CMABState2Manager(board, evaluator, coordinateMAB, moveMAB, greediness, playerID, enemyID);
 	}
 	else {
 		stateManager1->newRound(board, playerID, enemyID);
-		stateManager2->newRound(board, playerID, enemyID);
 	}
 
-	CMABState2 *MCTree1 = stateManager1->rootNode;
-	int counter1;
-	DevelopTreeArgs developTreeArgs1(MCTree1, &board, timeToSearch, alpha, &counter1, playerID, enemyID);
+	CMABState2 *MCTree = stateManager1->rootNode;
 
-	int movesExplored;
-	int counter;
+	Board copiedBoard(board.getWidth(), board.getHeight());
+	Board emptyBoard(board.getWidth(), board.getHeight());
+
+	int count = 0;
+	for (long currentTime = Tools::get_time(); currentTime - startTime < timeToUse; currentTime = Tools::get_time()) {
+		board.copyInto(copiedBoard);
+		float exploration = (float)1 / (1 + alpha * count);
+		MCTree->setGreed(1 - exploration);
+		MCTree->CMABRound(copiedBoard, emptyBoard, playerID, enemyID, rootMAB);
+		count++;
+	}
+
 	float score;
-	Move result;
-	pthread_t thread;
-	if (parallel) {
-		CMABState2 *MCTree2 = stateManager2->rootNode;
-		int counter2;
-		Board *boardCopy = board.getCopy();
-		DevelopTreeArgs developTreeArgs2(MCTree2, boardCopy, timeToSearch, alpha, &counter2, playerID, enemyID);
-
-		pthread_create(&thread, NULL, &developTree, (void*)&developTreeArgs2);
-		developTree((void*)&developTreeArgs1);
-		pthread_join(thread, NULL);
-		delete boardCopy;
-
-		movesExplored = MCTree1->getMovesExplored();
-		counter = counter1 + counter2;
-		result = MCTree1->getBestMove(&score, MCTree2, board);
-	}
-	else {
-		developTree((void*)&developTreeArgs1);
-		movesExplored = MCTree1->getMovesExplored();
-		counter = counter1;
-		result = MCTree1->getBestMove(&score, board);
-	}
+	Move result = MCTree->getBestMove(&score, board);
+	int movesExplored = MCTree->getMovesExplored();
 
 	long currentTime = Tools::get_time();
 	long timeUsed = currentTime - startTime;
 	previousTimeEnd = currentTime;
-	cerr << "CMAB2 round: " << round << " time to use: " << timeToUse << " time used: " << timeUsed << " time passed since last round: " <<
-		timePassed << " counter: " << counter << " moves explored: " << movesExplored << " move score: " << score << "\n";
+	//cerr << "CMAB2 round: " << round << " time to use: " << timeToUse << " time used: " << timeUsed << " time passed since last round: " <<
+	//	timePassed << " counter: " << count << " moves explored: " << movesExplored << " move score: " << score << "\n";
 
 	return result;
 }
 
 void CMABStrategy2::cleanUp() {
 	delete stateManager1;
-	delete stateManager2;
 	stateManager1 = NULL;
-	stateManager2 = NULL;
 }
 
 string CMABStrategy2::toString() {
 	ostringstream stringStream;
-	stringStream << "CMABStrategy2(" << evaluator->toString() << ", " << moveMAB->toString() << ", " <<
+	stringStream << "CMABStrategy2(" << evaluator->toString() << ", " << moveMAB->toString() << ", " << rootMAB->toString() << ", " <<
 		coordinateMAB->toString() << ", " << greediness << ", " << alpha << ")";
 	return stringStream.str();
 }

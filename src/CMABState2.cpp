@@ -121,7 +121,7 @@ MoveComponents CMABState2::getTargetsAndSacrifices(Board &board, Player playerID
 
 CMABState2::CMABState2(Board &board, SharedData *sharedData, Player playerID, Player enemyID) {
 	this->sharedData = sharedData;
-	this->moves = new vector<UtilityNode<MoveComponents>>();
+	this->moves = new UtilityHeap<MoveComponents>();
 	this->childrenStates = new unordered_map<Move, CMABState2*>();
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
@@ -137,7 +137,7 @@ CMABState2::CMABState2(Board &board, SharedData *sharedData, Player playerID, Pl
 CMABState2::CMABState2(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordinateMAB, MAB<MoveComponents> *moveMAB, float nonRootGreed,
 					   Player playerID, Player enemyID, CMABState2Manager *stateManager) {
 	sharedData = new SharedData(evaluator, coordinateMAB, moveMAB, nonRootGreed, stateManager);
-	this->moves = new vector<UtilityNode<MoveComponents>>();
+	this->moves = new UtilityHeap<MoveComponents>();
 	this->childrenStates = new unordered_map<Move, CMABState2*>();
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
@@ -183,7 +183,7 @@ void CMABState2::freeShared() {
 	delete sharedData;
 }
 
-float CMABState2::CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID) {
+float CMABState2::CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB) {
 	numTrials++;
 	assert(isCorrectBoard(board, playerID));
 	if (board.gameIsOver()) {
@@ -193,11 +193,11 @@ float CMABState2::CMABRound(Board &board, Board &emptyBoard, Player playerID, Pl
 	float rand = sharedData->uniformRealDistribution(sharedData->generator);
 	if (moves->size() == 0 || rand > greediness) {
 		// explore case
-		return exploreRound(board, emptyBoard, playerID, enemyID);
+		return exploreRound(board, emptyBoard, playerID, enemyID, moveMAB);
 	}
 	else {
 		// exploit case
-		return exploitRound(board, emptyBoard, playerID, enemyID);
+		return exploitRound(board, emptyBoard, playerID, enemyID, moveMAB);
 	}
 }
 
@@ -214,7 +214,7 @@ template <class T> T remove(vector<T> &v, int i) {
 	return res;
 }
 
-float CMABState2::exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
+float CMABState2::exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB) {
 	// select the move to explore
 	bool moveIsValid;
 	MoveComponents moveComponents = getTargetsAndSacrifices(board, playerID, enemyID, &moveIsValid);
@@ -240,7 +240,7 @@ float CMABState2::exploreRound(Board &board, Board &moveResultBoard, Player play
 
 		if (childrenStates->count(moveComponents.move) != 0) {
 			// this move has already been explored, so just use this round as an exploit round
-			return exploitRound(board, moveResultBoard, playerID, enemyID);
+			return exploitRound(board, moveResultBoard, playerID, enemyID, moveMAB);
 		}
 	}
 	return exploreMove(board, moveResultBoard, playerID, enemyID, moveComponents);
@@ -254,16 +254,16 @@ float CMABState2::exploreMove(Board &board, Board &moveResultBoard, Player playe
 	float moveEvaluation = sharedData->evaluator->evaluate(moveResultBoard, playerID, enemyID);
 	moveNode.updateUtility(moveEvaluation);
 	moveComponents.updateUtilities(moveEvaluation);
-	moves->push_back(moveNode);
+	moves->push(moveNode);
 	(*childrenStates)[moveComponents.move] = NULL; // initially set the value to NULL to save space. 
 												   // If/when this node is explored again this value will be filled
 	return moveEvaluation;
 }
 
-float CMABState2::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
+float CMABState2::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB) {
 	assert(moves->size() > 0);
 	int moveNodeIndex = sharedData->moveMAB->getChoice(*moves, numTrials);
-	UtilityNode<MoveComponents> &moveNode = (*moves)[moveNodeIndex];
+	UtilityNode<MoveComponents> moveNode = moves->pop(moveNodeIndex);
 
 	assert(board.isLegal(moveNode.object.move, playerID));
 	Move move = moveNode.object.move;
@@ -275,20 +275,21 @@ float CMABState2::exploitRound(Board &board, Board &moveResultBoard, Player play
 		childState = sharedData->stateManager->getState(moveResultBoard, sharedData, enemyID, playerID);
 		(*childrenStates)[move] = childState;
 	}
-	float moveEvaluation = 1 - childState->CMABRound(moveResultBoard, board, enemyID, playerID);
+	float moveEvaluation = 1 - childState->CMABRound(moveResultBoard, board, enemyID, playerID, sharedData->moveMAB);
 	moveNode.updateUtility(moveEvaluation);
 	moveNode.object.updateUtilities(moveEvaluation);
+	moves->push(moveNode);
 
 	return moveEvaluation;
 }
 
 Move CMABState2::getBestMove(float *bestScore, Board &board) {
 	assert(moves->size() > 0);
-	UtilityNode<MoveComponents> bestMoveNode = (*moves)[0];
+	UtilityNode<MoveComponents> bestMoveNode = moves->peak(0);
 	int highestCount = bestMoveNode.numTrials;
 	float highestWinrate = bestMoveNode.getAverageUtility();
 	for (int i = 1; i < moves->size(); i++) {
-		UtilityNode<MoveComponents> moveNode = (*moves)[i];
+		UtilityNode<MoveComponents> moveNode = moves->peak(i);
 		if (moveNode.numTrials > highestCount) {
 			bestMoveNode = moveNode;
 			highestCount = moveNode.numTrials;
@@ -305,7 +306,7 @@ Move CMABState2::getBestMove(float *bestScore, CMABState2 *other, Board &board) 
 	Move bestMove;
 
 	for (int i = 0; i < moves->size(); i++) {
-		UtilityNode<MoveComponents> moveNode = (*moves)[i];
+		UtilityNode<MoveComponents> moveNode = moves->peak(i);
 		Move move = moveNode.object.move;
 		int moveScore = moveNode.numTrials;
 		moveScores[move] = moveScore;
@@ -316,7 +317,7 @@ Move CMABState2::getBestMove(float *bestScore, CMABState2 *other, Board &board) 
 	}
 
 	for (int i = 0; i < other->moves->size(); i++) {
-		UtilityNode<MoveComponents> moveNode = (*other->moves)[i];
+		UtilityNode<MoveComponents> moveNode = other->moves->peak(i);
 		Move move = moveNode.object.move;
 		int moveScore = moveNode.numTrials;
 		if (moveScores.count(move) != 0) moveScore += moveScores[move];
@@ -339,7 +340,8 @@ void CMABState2::setGreed(float greed) {
 }
 
 void CMABState2::printTree(int depth) {
-	for (UtilityNode<MoveComponents> moveNode : *moves) {
+	for (int i = 0; i < moves->size(); i++) {
+		UtilityNode<MoveComponents> moveNode = moves->peak(i);
 		for (int i = 0; i < depth; i++) {
 			cerr << ".\t";
 		}

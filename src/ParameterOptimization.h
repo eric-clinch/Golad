@@ -21,72 +21,71 @@ namespace ParameterOptimization {
 
 struct AllParameters {
 	vector<UtilityNode<MAB<MoveComponents>*>*> moveMABs;
+	vector<UtilityNode<MAB<MoveComponents>*>*> rootMABs;
 	vector<UtilityNode<MAB<Coordinate>*>*> coordinateMABs;
-	vector<UtilityNode<MAB<MoveComponents>*>*> secondaryMoveMabs;
 	vector<UtilityNode<float>*> greeds;
 	vector<UtilityNode<float>*> alphas;
-	vector<UtilityNode<float>*> timeSplits;
-	vector<UtilityNode<int>*> topMoveNums;
+	//vector<UtilityNode<float>*> timeSplits;
+	//vector<UtilityNode<int>*> topMoveNums;
 
-	AllParameters(vector<UtilityNode<MAB<MoveComponents>*>*> &moveMABs, vector<UtilityNode<MAB<Coordinate>*>*> &coordinateMABs, 
-				  vector<UtilityNode<MAB<MoveComponents>*>*> &secondaryMoveMabs, vector<UtilityNode<float>*> &greeds, 
-				  vector<UtilityNode<float>*> &alphas, vector<UtilityNode<float>*> timeSplits, vector<UtilityNode<int>*> topMoveNums) {
+	AllParameters(vector<UtilityNode<MAB<MoveComponents>*>*> &moveMABs, vector<UtilityNode<MAB<MoveComponents>*>*> rootMABs, 
+				  vector<UtilityNode<MAB<Coordinate>*>*> &coordinateMABs, vector<UtilityNode<float>*> &greeds, vector<UtilityNode<float>*> &alphas) {
 		this->moveMABs = moveMABs;
+		this->rootMABs = rootMABs;
 		this->coordinateMABs = coordinateMABs;
-		this->secondaryMoveMabs = secondaryMoveMabs;
 		this->greeds = greeds;
 		this->alphas = alphas;
-		this->timeSplits = timeSplits;
-		this->topMoveNums = topMoveNums;
+		//this->timeSplits = timeSplits;
+		//this->topMoveNums = topMoveNums;
 	}
 
 	void shuffle() {
 		random_shuffle(moveMABs.begin(), moveMABs.end());
+		random_shuffle(rootMABs.begin(), rootMABs.end());
 		random_shuffle(coordinateMABs.begin(), coordinateMABs.end());
-		random_shuffle(secondaryMoveMabs.begin(), secondaryMoveMabs.end());
 		random_shuffle(alphas.begin(), alphas.end());
 		random_shuffle(greeds.begin(), greeds.end());
-		random_shuffle(timeSplits.begin(), timeSplits.end());
-		random_shuffle(topMoveNums.begin(), topMoveNums.end());
+		//random_shuffle(timeSplits.begin(), timeSplits.end());
+		//random_shuffle(topMoveNums.begin(), topMoveNums.end());
 	}
 };
 
 struct CMABParameters {
 	UtilityNode<MAB<MoveComponents>*> *moveMAB;
+	UtilityNode<MAB<MoveComponents>*> *rootMAB;
 	UtilityNode<MAB<Coordinate>*> *coordinateMAB;
-	UtilityNode<MAB<MoveComponents>*> *secondaryMoveMAB;
 	UtilityNode<float> *alpha;
 	UtilityNode<float> *greed;
-	UtilityNode<float> *timeSplit;
-	UtilityNode<int> *topMoveNum;
+	//UtilityNode<float> *timeSplit;
+	//UtilityNode<int> *topMoveNum;
 
 	CMABParameters() {};
 
-	CMABParameters(UtilityNode<MAB<MoveComponents>*> *m, UtilityNode<MAB<Coordinate>*> *c, UtilityNode<MAB<MoveComponents>*> *secondaryMoveMAB,
-				   UtilityNode<float> *greed, UtilityNode<float> *alpha, UtilityNode<float> *timeSplit, UtilityNode<int> *topMoveNum) {
+	CMABParameters(UtilityNode<MAB<MoveComponents>*> *m, UtilityNode<MAB<MoveComponents>*> *rootMAB, UtilityNode<MAB<Coordinate>*> *c,
+				   UtilityNode<float> *greed, UtilityNode<float> *alpha) {
 		this->moveMAB = m;
+		this->rootMAB = rootMAB;
 		this->coordinateMAB = c;
-		this->secondaryMoveMAB = secondaryMoveMAB;
 		this->greed = greed;
 		this->alpha = alpha;
-		this->timeSplit = timeSplit;
-		this->topMoveNum = topMoveNum;
+		//this->timeSplit = timeSplit;
+		//this->topMoveNum = topMoveNum;
 	}
 
 	void updateUtilities(float utility) {
 		moveMAB->updateUtility(utility);
+		rootMAB->updateUtility(utility);
 		coordinateMAB->updateUtility(utility);
-		secondaryMoveMAB->updateUtility(utility);
 		alpha->updateUtility(utility);
 		greed->updateUtility(utility);
-		timeSplit->updateUtility(utility);
-		topMoveNum->updateUtility(utility);
+		//timeSplit->updateUtility(utility);
+		//topMoveNum->updateUtility(utility);
 	}
 
 	Strategy *getStrategy() {
 		RatioEvaluator *evaluator = new RatioEvaluator();
-		Strategy *strategy = new CMABStrategyParallel(evaluator, moveMAB->object, coordinateMAB->object, secondaryMoveMAB->object,
-											   greed->object, alpha->object, timeSplit->object, topMoveNum->object);
+		Strategy *strategy = new CMABStrategy2(evaluator, moveMAB->object, rootMAB->object, coordinateMAB->object,
+											  greed->object, alpha->object);
 		return strategy;
 	}
 };
@@ -117,12 +116,12 @@ UtilityNode<CMABParameters> *getParameters(AllParameters &possibleParameters, ve
 		int moveMABIndex = moveChooser.getChoice(possibleParameters.moveMABs, round);
 		UtilityNode<MAB<MoveComponents>*> *moveMABNode = possibleParameters.moveMABs[moveMABIndex];
 
+		int rootMABIndex = moveChooser.getChoice(possibleParameters.rootMABs, round);
+		UtilityNode<MAB<MoveComponents>*> *rootMABNode = possibleParameters.rootMABs[rootMABIndex];
+
 		UCB1<MAB<Coordinate>*> coordinateChooser(2);
 		int coordinateMABIndex = coordinateChooser.getChoice(possibleParameters.coordinateMABs, round);
 		UtilityNode<MAB<Coordinate>*> *coordinateMABNode = possibleParameters.coordinateMABs[coordinateMABIndex];
-
-		int secondaryMoveMABIndex = moveChooser.getChoice(possibleParameters.secondaryMoveMabs, round);
-		UtilityNode<MAB<MoveComponents>*> *secondaryMoveMABNode = possibleParameters.secondaryMoveMabs[secondaryMoveMABIndex];
 
 		UCB1<float> floatChooser(2);
 		int greedNodeIndex = floatChooser.getChoice(possibleParameters.greeds, round);
@@ -131,14 +130,14 @@ UtilityNode<CMABParameters> *getParameters(AllParameters &possibleParameters, ve
 		int alphaNodeIndex = floatChooser.getChoice(possibleParameters.alphas, round);
 		UtilityNode<float> *alphaNode = possibleParameters.alphas[alphaNodeIndex];
 
-		int timeSplitIndex = floatChooser.getChoice(possibleParameters.timeSplits, round);
-		UtilityNode<float> *timeSplitNode = possibleParameters.timeSplits[timeSplitIndex];
+		//int timeSplitIndex = floatChooser.getChoice(possibleParameters.timeSplits, round);
+		//UtilityNode<float> *timeSplitNode = possibleParameters.timeSplits[timeSplitIndex];
 
-		UCB1<int> intChooser(2);
-		int topMoveNumIndex = intChooser.getChoice(possibleParameters.topMoveNums, round);
-		UtilityNode<int> *topMoveNumNode = possibleParameters.topMoveNums[topMoveNumIndex];
+		//UCB1<int> intChooser(2);
+		//int topMoveNumIndex = intChooser.getChoice(possibleParameters.topMoveNums, round);
+		//UtilityNode<int> *topMoveNumNode = possibleParameters.topMoveNums[topMoveNumIndex];
 
-		CMABParameters resultParameters(moveMABNode, coordinateMABNode, secondaryMoveMABNode, greedNode, alphaNode, timeSplitNode, topMoveNumNode);
+		CMABParameters resultParameters(moveMABNode, rootMABNode, coordinateMABNode, greedNode, alphaNode);
 		UtilityNode<CMABParameters> *result = new UtilityNode<CMABParameters>(resultParameters);
 		return result;
 	}
@@ -234,7 +233,7 @@ void CMABRound(AllParameters &possibleParameters, vector<UtilityNode<CMABParamet
 }
 
 double getExploration(int round) {
-	return (float)1 / (1 + 0.015 * round);
+	return (float)1 / (1 + 0.01 * round);
 }
 
 void solveMAB(vector<UtilityNode<Bot>> &botNodes, int rounds) {
@@ -319,12 +318,31 @@ void ParameterOptimization::optimizeParameters(int rounds) {
 
 	// CMAB Solver setup
 	vector<UtilityNode<MAB<MoveComponents>*>*> moveMABs;
-	for (float confidence = 1; confidence < 4.6; confidence += 0.5) {
+	for (float confidence = 1; confidence < 5.6; confidence += 0.5) {
 		for (float epsilon = 0.4; epsilon < 1; epsilon += 0.1) {
 			MAB<MoveComponents> *moveMAB = new UCBHybrid<MoveComponents>(confidence, epsilon);
 			UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
 			moveMABs.push_back(moveMABNode);
 		}
+	}
+	for (float epsilon = 0.3; epsilon < 0.91; epsilon += 0.1) {
+		MAB<MoveComponents> *moveMAB = new EpsilonGreedy<MoveComponents>(epsilon);
+		UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
+		moveMABs.push_back(moveMABNode);
+	}
+
+	vector<UtilityNode<MAB<MoveComponents>*>*> rootMABs;
+	for (float confidence = 1; confidence < 5.6; confidence += 0.5) {
+		for (float epsilon = 0.4; epsilon < 1; epsilon += 0.1) {
+			MAB<MoveComponents> *moveMAB = new UCBHybrid<MoveComponents>(confidence, epsilon);
+			UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
+			rootMABs.push_back(moveMABNode);
+		}
+	}
+	for (float epsilon = 0.3; epsilon < 0.91; epsilon += 0.1) {
+		MAB<MoveComponents> *moveMAB = new EpsilonGreedy<MoveComponents>(epsilon);
+		UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
+		rootMABs.push_back(moveMABNode);
 	}
 
 	vector<UtilityNode<MAB<Coordinate>*>*> coordinateMABs;
@@ -334,25 +352,6 @@ void ParameterOptimization::optimizeParameters(int rounds) {
 		coordinateMABs.push_back(coordinateMABNode);
 	}
 
-	vector<UtilityNode<MAB<MoveComponents>*>*> secondaryMoveMABs;
-	for (float epsilon = 0.2; epsilon < 0.81; epsilon += 0.1) {
-		MAB<MoveComponents> *moveMAB = new EpsilonGreedy<MoveComponents>(epsilon);
-		UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
-		secondaryMoveMABs.push_back(moveMABNode);
-	}
-	for (float confidence = 1; confidence < 4.6; confidence += 0.5) {
-		for (float epsilon = 0.1; epsilon < 1; epsilon += 0.1) {
-			MAB<MoveComponents> *moveMAB = new UCBHybrid<MoveComponents>(confidence, epsilon);
-			UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
-			secondaryMoveMABs.push_back(moveMABNode);
-		}
-	}
-	for (float confidence = 1; confidence < 4.6; confidence += 0.5) {
-		MAB<MoveComponents> *moveMAB = new UCB1<MoveComponents>(confidence);
-		UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
-		secondaryMoveMABs.push_back(moveMABNode);
-	}
-
 	vector<UtilityNode<float>*> greeds;
 	for (float greed = 0.1; greed <= 0.9;  greed += 0.05) {
 		UtilityNode<float> *greedNode = new UtilityNode<float>(greed);
@@ -360,7 +359,7 @@ void ParameterOptimization::optimizeParameters(int rounds) {
 	}
 
 	vector<UtilityNode<float>*> alphas;
-	int expectedRounds = 22000;
+	int expectedRounds = 21000;
 	for (int desiredExplored = 3000; desiredExplored < 10000; desiredExplored += 500) {
 		float alpha = approximateAlpha(expectedRounds, desiredExplored);
 		UtilityNode<float> *alphaNode = new UtilityNode<float>(alpha);
@@ -379,7 +378,7 @@ void ParameterOptimization::optimizeParameters(int rounds) {
 		topMoveNums.push_back(topMoveNumNode);
 	}
 
-	AllParameters possibleParameters(moveMABs, coordinateMABs, secondaryMoveMABs, greeds, alphas, timeSplits, topMoveNums);
+	AllParameters possibleParameters(moveMABs, rootMABs, coordinateMABs, greeds, alphas);
 	vector<UtilityNode<CMABParameters>*> testedParameters;
 	default_random_engine generator;
 	random_device rd;

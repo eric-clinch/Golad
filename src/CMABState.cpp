@@ -121,7 +121,7 @@ MoveComponents CMABState::getTargetsAndSacrifices(Board &board, Player playerID,
 
 CMABState::CMABState(Board &board, SharedData *sharedData, Player playerID, Player enemyID) {
 	this->sharedData = sharedData;
-	this->moves = new vector<UtilityNode<MoveComponents>>();
+	this->moves = new UtilityHeap<MoveComponents>();
 	this->childrenStates = new unordered_map<Move, CMABState*>();
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
@@ -137,7 +137,7 @@ CMABState::CMABState(Board &board, SharedData *sharedData, Player playerID, Play
 CMABState::CMABState(Board &board, Evaluator *evaluator, MAB<Coordinate> *coordinateMAB, MAB<MoveComponents> *moveMAB, float nonRootGreed,
 					   Player playerID, Player enemyID, CMABStateManager *stateManager) {
 	sharedData = new SharedData(evaluator, coordinateMAB, moveMAB, nonRootGreed, stateManager);
-	this->moves = new vector<UtilityNode<MoveComponents>>();
+	this->moves = new UtilityHeap<MoveComponents>();
 	this->childrenStates = new unordered_map<Move, CMABState*>();
 	this->nextRoundBoard = board.getNextRoundBoard();
 	this->numTrials = 0;
@@ -254,7 +254,7 @@ float CMABState::exploreMove(Board &board, Board &moveResultBoard, Player player
 	float moveEvaluation = sharedData->evaluator->evaluate(moveResultBoard, playerID, enemyID);
 	moveNode.updateUtility(moveEvaluation);
 	moveComponents.updateUtilities(moveEvaluation);
-	moves->push_back(moveNode);
+	moves->push(moveNode);
 	(*childrenStates)[moveComponents.move] = NULL; // initially set the value to NULL to save space. 
 												   // If/when this node is explored again this value will be filled
 	return moveEvaluation;
@@ -263,7 +263,7 @@ float CMABState::exploreMove(Board &board, Board &moveResultBoard, Player player
 float CMABState::exploitRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID) {
 	assert(moves->size() > 0);
 	int moveNodeIndex = sharedData->moveMAB->getChoice(*moves, numTrials);
-	UtilityNode<MoveComponents> &moveNode = (*moves)[moveNodeIndex];
+	UtilityNode<MoveComponents> moveNode = moves->pop(moveNodeIndex);
 
 	assert(board.isLegal(moveNode.object.move, playerID));
 	Move move = moveNode.object.move;
@@ -278,17 +278,18 @@ float CMABState::exploitRound(Board &board, Board &moveResultBoard, Player playe
 	float moveEvaluation = 1 - childState->CMABRound(moveResultBoard, board, enemyID, playerID);
 	moveNode.updateUtility(moveEvaluation);
 	moveNode.object.updateUtilities(moveEvaluation);
+	moves->push(moveNode);
 
 	return moveEvaluation;
 }
 
 Move CMABState::getBestMove(float *bestScore, Board &board) {
 	assert(moves->size() > 0);
-	UtilityNode<MoveComponents> bestMoveNode = (*moves)[0];
+	UtilityNode<MoveComponents> bestMoveNode = moves->peak(0);
 	int highestCount = bestMoveNode.numTrials;
 	float highestWinrate = bestMoveNode.getAverageUtility();
 	for (int i = 1; i < moves->size(); i++) {
-		UtilityNode<MoveComponents> moveNode = (*moves)[i];
+		UtilityNode<MoveComponents> moveNode = moves->peak(i);
 		if (moveNode.numTrials > highestCount) {
 			bestMoveNode = moveNode;
 			highestCount = moveNode.numTrials;
@@ -305,7 +306,7 @@ Move CMABState::getBestMove(float *bestScore, CMABState *other, Board &board) {
 	Move bestMove;
 
 	for (int i = 0; i < moves->size(); i++) {
-		UtilityNode<MoveComponents> moveNode = (*moves)[i];
+		UtilityNode<MoveComponents> moveNode = moves->peak(i);
 		Move move = moveNode.object.move;
 		int moveScore = moveNode.numTrials;
 		moveScores[move] = moveScore;
@@ -316,7 +317,7 @@ Move CMABState::getBestMove(float *bestScore, CMABState *other, Board &board) {
 	}
 
 	for (int i = 0; i < other->moves->size(); i++) {
-		UtilityNode<MoveComponents> moveNode = (*other->moves)[i];
+		UtilityNode<MoveComponents> moveNode = other->moves->peak(i);
 		Move move = moveNode.object.move;
 		int moveScore = moveNode.numTrials;
 		if (moveScores.count(move) != 0) moveScore += moveScores[move];
@@ -339,7 +340,8 @@ void CMABState::setGreed(float greed) {
 }
 
 void CMABState::printTree(int depth) {
-	for (UtilityNode<MoveComponents> moveNode : *moves) {
+	for (int i = 0; i < moves->size(); i++) {
+		UtilityNode<MoveComponents> moveNode = moves->peak(i);
 		for (int i = 0; i < depth; i++) {
 			cerr << ".\t";
 		}

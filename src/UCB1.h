@@ -47,6 +47,22 @@ public:
 		return bestNodeIndex;
 	}
 
+	int getChoice(UtilityHeap<T> &heap, int numTrials) {
+		float confidenceNumerator = log(numTrials) * confidenceConstant;
+		int bestNodeIndex = 0;
+		UtilityNode<T> node = heap.peak(0);
+		float bestScore = node.getAverageUtility() + sqrt(confidenceNumerator / node.numTrials);
+		for (int i = 1; i < heap.size(); i++) {
+			node = heap.peak(i);
+			float nodeScore = node.getAverageUtility() + sqrt(confidenceNumerator / node.numTrials);
+			if (nodeScore > bestScore) {
+				bestScore = nodeScore;
+				bestNodeIndex = i;
+			}
+		}
+		return bestNodeIndex;
+	}
+
 	string toString() {
 		ostringstream stringStream;
 		stringStream << "UCB1(" << confidenceConstant << ")";

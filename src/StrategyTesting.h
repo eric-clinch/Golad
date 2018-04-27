@@ -27,7 +27,7 @@ int StrategyTesting::playMatch(Bot bot0, Bot bot1, bool verbose) {
 	bot0.SetYourBotId(P0);
 	bot1.SetYourBotId(P1);
 
-	float serverRatio = .5;
+	float serverRatio = .78;
 	int bot0Time = 10000 * serverRatio;
 	int bot1Time = 10000 * serverRatio;
 	int timePerMove = 100 * serverRatio;

@@ -18,6 +18,7 @@
 #include <unordered_set>
 #include <random>
 #include "UtilityNode.h"
+#include "UtilityHeap.h"
 #include "Coordinate.h"
 #include "Move.h"
 #include "Evaluator.h"
@@ -38,7 +39,7 @@ public:
 	void freeShared(); // a secondary deconstructor that should only be called on one of the CMABState2s in the state tree when freeing the game tree
 
 	void setStateManager(CMABState2Manager *stateManager);
-	float CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID); // is a destructive function on both the board and empty board given
+	float CMABRound(Board &board, Board &emptyBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMab); // is a destructive function on both the board and empty board given
 	Move getBestMove(float *bestScore, Board &board);
 	Move getBestMove(float *bestScore, CMABState2 *other, Board &board);
 	int getMovesExplored();
@@ -54,7 +55,7 @@ private:
 	vector<UtilityNode<Coordinate>*> *coordinateNodes;
 	vector<UtilityNode<Coordinate>*> *targets;
 	vector<UtilityNode<Coordinate>*> *sacrifices;
-	vector<UtilityNode<MoveComponents>> *moves;
+	UtilityHeap<MoveComponents> *moves;
 	unordered_map<Move, CMABState2*> *childrenStates;
 	Board *nextRoundBoard;
 	int numTrials;
@@ -67,9 +68,9 @@ private:
 	MoveComponents getTargetsAndSacrifices(Board &board, Player playerID, Player enemyID, bool *returnIsValid); // constructor helper
 
 	bool isCorrectBoard(Board &board, Player playerID);
-	float exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID);
+	float exploreRound(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB);
 	float exploreMove(Board &board, Board &moveResultBoard, Player playerID, Player enemyID, MoveComponents &moveComponents);
-	float exploitRound(Board &board, Board &nextRoundBoard, Player playerID, Player enemyID);
+	float exploitRound(Board &board, Board &nextRoundBoard, Player playerID, Player enemyID, MAB<MoveComponents> *moveMAB);
 };
 
 #endif

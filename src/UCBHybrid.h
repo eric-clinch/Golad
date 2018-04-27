@@ -89,6 +89,29 @@ public:
 		}
 	}
 
+	int getChoice(UtilityHeap<T> &heap, int numTrials) {
+		int numNodes = heap.size();
+		assert(numNodes > 0);
+		if (uniformRealDistribution(generator) < greed) { // greedy case
+			return 0; // the highest priority node in the heap is at index 0
+		}
+		else {
+			float confidenceNumerator = log(numTrials) * confidenceConstant;
+			int bestNodeIndex = 0;
+			UtilityNode<T> node = heap.peak(0);
+			float bestScore = node.getAverageUtility() + sqrt(confidenceNumerator / node.numTrials);
+			for (int i = 1; i < heap.size(); i++) {
+				node = heap.peak(i);
+				float nodeScore = node.getAverageUtility() + sqrt(confidenceNumerator / node.numTrials);
+				if (nodeScore > bestScore) {
+					bestScore = nodeScore;
+					bestNodeIndex = i;
+				}
+			}
+			return bestNodeIndex;
+		}
+	}
+
 	string toString() {
 		ostringstream stringStream;
 		stringStream << "UCBHybrid(" << confidenceConstant << ", " << greed << ")";

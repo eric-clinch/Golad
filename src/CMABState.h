@@ -18,6 +18,7 @@
 #include <unordered_set>
 #include <random>
 #include "UtilityNode.h"
+#include "UtilityHeap.h"
 #include "Coordinate.h"
 #include "Move.h"
 #include "Evaluator.h"
@@ -54,7 +55,7 @@ private:
 	vector<UtilityNode<Coordinate>*> *coordinateNodes;
 	vector<UtilityNode<Coordinate>*> *targets;
 	vector<UtilityNode<Coordinate>*> *sacrifices;
-	vector<UtilityNode<MoveComponents>> *moves;
+	UtilityHeap<MoveComponents> *moves;
 	unordered_map<Move, CMABState*> *childrenStates;
 	Board *nextRoundBoard;
 	int numTrials;

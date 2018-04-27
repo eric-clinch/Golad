@@ -33,7 +33,6 @@
 #include "UCB1.h"
 #include "UCBHybrid.h"
 #include "Board.h"
-#include "Board2.h"
 #include "Coordinate.h"
 #include "Move.h"
 #include "StrategyTesting.h"
@@ -42,7 +41,7 @@
 using namespace std;
 
 void test() {
-	
+
 }
 
 void play() {
@@ -71,7 +70,7 @@ void playTest() {
 	Evaluator *evaluator1 = new RatioEvaluator();
 	UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(4.5, 0.9);
 	EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy2 bot1Strategy(evaluator1, moveMAB1, coordinateMAB1, 0.5, 0.000175905);
+	CMABStrategy2 bot1Strategy(evaluator1, moveMAB1, moveMAB1, coordinateMAB1, 0.5, 0.000175905);
 
 	//UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(2, 0.9);
 	//EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.5);
@@ -88,16 +87,13 @@ int main() {
 	// Initialize random number generator
 	srand(time(NULL));
 
-	//unsigned availableThreads = thread::hardware_concurrency();
-	//cerr << "available threads: " << availableThreads << "\n";
-
 	freopen("cerr_log.txt", "w", stderr);
 
-	playTest();
+	//playTest();
 	//test();
 	//play();
 
-	//ParameterOptimization::optimizeParameters(100000);
+	ParameterOptimization::optimizeParameters(100000);
 
 	delete Board::simulationLookupTable;
 	_CrtDumpMemoryLeaks();

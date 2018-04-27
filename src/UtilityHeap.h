@@ -1,16 +1,27 @@
 
-#ifndef UTILITYHEAP_h
-#define UTILITYHEAP_h
+#ifdef _DEBUG
+#include <stdlib.h>
+#include <crtdbg.h>
+#define _CRTDBG_MAP_ALLOC
+#define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the
+// allocations to be of _CLIENT_BLOCK type
+#else
+#define NDEBUG
+#endif
 
 #include <vector>
 #include <assert.h>
 #include "UtilityNode.h"
 
+#ifndef UTILITYHEAP_h
+#define UTILITYHEAP_h
+
 using namespace std;
 
 template <class T> class UtilityHeap {
 private:
-	vector<UtilityNode<T>*> heap;
+	vector<UtilityNode<T>> heap;
 
 	static inline int getParentIndex(int index) {
 		return (index - 1) / 2;
@@ -20,19 +31,12 @@ private:
 		return index * 2 + 1;
 	}
 
-	void print() {
-		for (int i = 0; i < size(); i++) {
-			cerr << heap[i]->getAverageUtility() << " ";
-		}
-		cerr << "\n";
-	}
-
 	void heapifyUp(int index) {
 		assert(index >= 0 && index < size());
-		UtilityNode<T> *currentElement = heap[index];
+		UtilityNode<T> currentElement = heap[index];
 		int parentIndex = getParentIndex(index);
-		UtilityNode<T> *parentElement = heap[parentIndex];
-		while (currentElement->getAverageUtility() > parentElement->getAverageUtility()) {
+		UtilityNode<T> parentElement = heap[parentIndex];
+		while (currentElement.getAverageUtility() > parentElement.getAverageUtility()) {
 			heap[index] = parentElement;
 			heap[parentIndex] = currentElement;
 
@@ -49,14 +53,14 @@ private:
 		int rightChildIndex = leftChildIndex + 1;
 		int largest = index;
 		int heapSize = heap.size();
-		if (leftChildIndex < heapSize && heap[leftChildIndex]->getAverageUtility() > heap[largest]->getAverageUtility()) {
+		if (leftChildIndex < heapSize && heap[leftChildIndex].getAverageUtility() > heap[largest].getAverageUtility()) {
 			largest = leftChildIndex;
 		}
-		if (rightChildIndex < heapSize && heap[rightChildIndex]->getAverageUtility() > heap[largest]->getAverageUtility()) {
+		if (rightChildIndex < heapSize && heap[rightChildIndex].getAverageUtility() > heap[largest].getAverageUtility()) {
 			largest = rightChildIndex;
 		}
 		if (largest != index) {
-			UtilityNode<T> *temp = heap[index];
+			UtilityNode<T> temp = heap[index];
 			heap[index] = heap[largest];
 			heap[largest] = temp;
 			heapifyDown(largest);
@@ -68,17 +72,17 @@ private:
 		if (index >= size()) return true;
 		int leftChildIndex = getChildIndex(index);
 		int rightChildIndex = leftChildIndex + 1;
-		if (leftChildIndex < size() && heap[leftChildIndex]->getAverageUtility() > heap[index]->getAverageUtility()) {
+		if (leftChildIndex < size() && heap[leftChildIndex].getAverageUtility() > heap[index].getAverageUtility()) {
 			return false;
 		}
-		if (rightChildIndex < size() && heap[rightChildIndex]->getAverageUtility() > heap[index]->getAverageUtility()) {
+		if (rightChildIndex < size() && heap[rightChildIndex].getAverageUtility() > heap[index].getAverageUtility()) {
 			return false;
 		}
 		return isHeap(leftChildIndex) && isHeap(rightChildIndex);
 	}
 
 public:
-	UtilityHeap(vector<UtilityNode<T>*> &v) {
+	UtilityHeap(vector<UtilityNode<T>> &v) {
 		for (int i = 0; i < v.size(); i++) {
 			push(v[i]);
 		}
@@ -91,20 +95,16 @@ public:
 
 	~UtilityHeap() {}
 
-	UtilityNode<T> *peak(int index = 0) {
+	UtilityNode<T> peak(int index = 0) {
 		assert(index >= 0 && index < size());
-		if (!isHeap()) {
-			print();
-			cerr << "LOL\n";
-		}
 		assert(isHeap());
 		return heap[index];
 	}
 
-	UtilityNode<T> *pop() {
+	UtilityNode<T> pop() {
 		assert(!this->empty());
 		assert(isHeap());
-		UtilityNode<T> *res = heap[0];
+		UtilityNode<T> res = heap[0];
 		heap[0] = heap.back();
 		heap.pop_back();
 		if (!heap.empty()) heapifyDown(0);
@@ -112,17 +112,17 @@ public:
 		return res;
 	}
 
-	UtilityNode<T> *pop(int index) {
+	UtilityNode<T> pop(int index) {
 		assert(index >= 0 && index < size());
 		assert(isHeap());
-		UtilityNode<T> *res = heap[index];
-		UtilityNode<T> *back = heap.back();
+		UtilityNode<T> res = heap[index];
+		UtilityNode<T> back = heap.back();
 		heap[index] = back;
 		heap.pop_back();
 
 		int parentIndex = getParentIndex(index);
 		if (index < heap.size()) {
-			if (back->getAverageUtility() > heap[parentIndex]->getAverageUtility()) {
+			if (back.getAverageUtility() > heap[parentIndex].getAverageUtility()) {
 				heapifyUp(index);
 			}
 			else {
@@ -134,7 +134,7 @@ public:
 		return res;
 	}
 
-	void push(UtilityNode<T> *element) {
+	void push(UtilityNode<T> &element) {
 		assert(isHeap());
 		heap.push_back(element);
 		heapifyUp(heap.size() - 1);
@@ -147,6 +147,10 @@ public:
 
 	inline int size() {
 		return heap.size();
+	}
+
+	inline void clear() {
+		heap.clear();
 	}
 };
 

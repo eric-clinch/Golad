@@ -26,20 +26,18 @@ class CMABStrategy2 : public Strategy {
 private:
 	Evaluator * evaluator;
 	MAB<MoveComponents> *moveMAB;
+	MAB<MoveComponents> *rootMAB;
 	MAB<Coordinate> *coordinateMAB;
 	float greediness;
 	float alpha;
-	bool parallel;
 	long previousTimeEnd;
 	static void *freeTree(void *arg);
 	static void *freeTrees(void *arg);
-	static void *developTree(void *arg);
 	CMABState2Manager *stateManager1;
-	CMABState2Manager *stateManager2;
 
 public:
-	CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<Coordinate> *coordinateMAB, float greediness, 
-				  float alpha, bool parallel=false);
+	CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<MoveComponents> *rootMAB, MAB<Coordinate> *coordinateMAB, 
+				  float greediness, float alpha);
 	~CMABStrategy2();
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 	virtual void cleanUp();

@@ -74,6 +74,19 @@ public:
 		}
 	}
 
+	int getChoice(UtilityHeap<T> &heap, int numTrials) {
+		int numNodes = heap.size();
+		assert(numNodes > 0);
+		if (uniformRealDistribution(generator) < epsilon) { // greedy case
+			return 0; // the highest priority node in the heap is at index 0
+		}
+		else { // random case
+			uniform_int_distribution<int> uniformIntDistribution(0, numNodes - 1);
+			int randomIndex = uniformIntDistribution(generator);
+			return randomIndex;
+		}
+	}
+
 	string toString() {
 		ostringstream stringStream;
 		stringStream << "EpsilonGreedy(" << epsilon << ")";
