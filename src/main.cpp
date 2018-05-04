@@ -28,6 +28,10 @@
 #include "Evaluator.h"
 #include "RatioEvaluator.h"
 #include "AdversarialEvaluator.h"
+#include "RoundEvaluator.h"
+#include "ControlEvaluator.h"
+#include "DistanceEvaluator.h"
+#include "DistanceEvaluator.h"
 #include "MAB.h"
 #include "EpsilonGreedy.h"
 #include "UCB1.h"
@@ -45,20 +49,20 @@ void test() {
 }
 
 void play() {
-	RatioEvaluator *evaluator = new RatioEvaluator();
-	UCBHybrid<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
-	EpsilonGreedy<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy strategy(evaluator, moveMAB0, coordinateMAB0, 0.5, 0.000175905);
+	Evaluator *evaluator = new ControlEvaluator(0.5);
+	MAB<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
+	MAB<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
+	CMABStrategy strategy(evaluator, moveMAB0, coordinateMAB0, 0.5, 0.000175905, 64, 128);
 	Bot myBot = Bot(&strategy);
 	Parser parser = Parser(myBot);
 	parser.Parse();
 }
 
 void playTest() {
-	Evaluator *evaluator0 = new RatioEvaluator();
+	Evaluator *evaluator0 = new RoundEvaluator();
 	UCBHybrid<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
 	EpsilonGreedy<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy bot0Strategy(evaluator0, moveMAB0, coordinateMAB0, 0.5, 0.000175905);
+	CMABStrategy bot0Strategy(evaluator0, moveMAB0, coordinateMAB0, 0.5, 0.000175905, 64, 128);
 
 	//UCBHybrid<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
 	//EpsilonGreedy<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
@@ -67,10 +71,10 @@ void playTest() {
 
 	Bot bot0 = Bot(&bot0Strategy);
 	
-	Evaluator *evaluator1 = new RatioEvaluator();
-	UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(4.5, 0.9);
+	Evaluator *evaluator1 = new DistanceEvaluator(0.5, 1.0);
+	UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(4, 0.9);
 	EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy2 bot1Strategy(evaluator1, moveMAB1, moveMAB1, coordinateMAB1, 0.5, 0.000175905);
+	CMABStrategy2 bot1Strategy(evaluator1, moveMAB1, coordinateMAB1, 0.5, 0.000175905, 64, 128);
 
 	//UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(2, 0.9);
 	//EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.5);
@@ -87,7 +91,7 @@ int main() {
 	// Initialize random number generator
 	srand(time(NULL));
 
-	freopen("cerr_log.txt", "w", stderr);
+	//freopen("C:/Users/ericc/Desktop/golad/cerr_log.txt", "w", stderr);
 
 	//playTest();
 	//test();

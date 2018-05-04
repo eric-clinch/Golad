@@ -44,8 +44,8 @@ public:
 	Move getBestMove(float *bestScore, CMABState *other, Board &board);
 	int getMovesExplored();
 	void setGreed(float greed);
+	void prune(int pruneSize);
 	void printTree(int depth = 0);
-	void doAnalysis(CMABState *other);
 
 private:
 	struct SharedData;

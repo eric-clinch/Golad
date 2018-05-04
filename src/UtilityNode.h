@@ -36,10 +36,6 @@ public:
 		numTrials += 1;
 	}
 
-	void replaceUtility(float oldUtiliity, float newUtility) {
-		totalUtility += newUtility - oldUtiliity;
-	}
-
 	void repurpose(T &object) {
 		this->object = object;
 		this->numTrials = 0;

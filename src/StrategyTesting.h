@@ -27,14 +27,14 @@ int StrategyTesting::playMatch(Bot bot0, Bot bot1, bool verbose) {
 	bot0.SetYourBotId(P0);
 	bot1.SetYourBotId(P1);
 
-	float serverRatio = .78;
+	float serverRatio = .6;
 	int bot0Time = 10000 * serverRatio;
 	int bot1Time = 10000 * serverRatio;
 	int timePerMove = 100 * serverRatio;
 	bot0.SetTimePerMove(timePerMove);
 	bot1.SetTimePerMove(timePerMove);
 
-	for (int round = 0; round < 50 && bot0Time >= 0 && bot1Time >= 0; round++) {
+	for (int round = 0; round < 100 && bot0Time >= 0 && bot1Time >= 0; round++) {
 		if (verbose) cout << board.toString();
 		int P0Count = board.getPlayerCellCount(P0);
 		int P1Count = board.getPlayerCellCount(P1);

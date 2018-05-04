@@ -21,12 +21,16 @@
 #include "CMABState2Manager.h"
 #include "MoveComponents.h"
 #include "Tools.h"
+#include "BoardDensity.h"
+#include "RatioEvaluator.h"
 
 class CMABStrategy2 : public Strategy {
 private:
+	int lowerMoveBound;
+	int upperMoveBound;
+
 	Evaluator * evaluator;
 	MAB<MoveComponents> *moveMAB;
-	MAB<MoveComponents> *rootMAB;
 	MAB<Coordinate> *coordinateMAB;
 	float greediness;
 	float alpha;
@@ -35,9 +39,10 @@ private:
 	static void *freeTrees(void *arg);
 	CMABState2Manager *stateManager1;
 
+
 public:
-	CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<MoveComponents> *rootMAB, MAB<Coordinate> *coordinateMAB, 
-				  float greediness, float alpha);
+	CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<Coordinate> *coordinateMAB, 
+				  float greediness, float alpha, int lowerMovesBound, int uppoerMovesBound);
 	~CMABStrategy2();
 	virtual Move getMove(Board &board, Player playerID, Player enemyID, int time, int timePerMove, int round);
 	virtual void cleanUp();

@@ -296,7 +296,7 @@ Move CMABState::getBestMove(float *bestScore, Board &board) {
 			highestWinrate = moveNode.getAverageUtility();
 		}
 	}
-	if (bestScore != NULL) *bestScore = highestCount;
+	if (bestScore != NULL) *bestScore = highestWinrate;
 	return bestMoveNode.object.move;
 }
 
@@ -339,6 +339,18 @@ void CMABState::setGreed(float greed) {
 	this->greediness = greed;
 }
 
+void CMABState::prune(int pruneSize) {
+	assert(pruneSize <= moves->size());
+	UtilityHeap<MoveComponents> *remainingMoves = new UtilityHeap<MoveComponents>();
+	for (int i = 0; i < pruneSize; i++) {
+		UtilityNode<MoveComponents> moveNode = moves->pop();
+		remainingMoves->push(moveNode);
+	}
+	delete moves;
+	moves = remainingMoves;
+	assert(pruneSize == moves->size());
+}
+
 void CMABState::printTree(int depth) {
 	for (int i = 0; i < moves->size(); i++) {
 		UtilityNode<MoveComponents> moveNode = moves->peak(i);
@@ -354,18 +366,4 @@ void CMABState::printTree(int depth) {
 	if (depth == 0) {
 		cerr << "---------------------------------\n";
 	}
-}
-
-void CMABState::doAnalysis(CMABState *other) {
-	sort(targets->begin(), targets->end(), Tools::UtilityNodePointerComparator<Coordinate>);
-	sort(other->targets->begin(), other->targets->end(), Tools::UtilityNodePointerComparator<Coordinate>);
-
-	for (int i = 0; i < 5 && i < targets->size(); i++) {
-		cerr << (*targets)[i]->object.toString() << " score: " << (*targets)[i]->numTrials << "\n";
-	}
-	cerr << "\n";
-	for (int i = 0; i < 5 && i < other->targets->size(); i++) {
-		cerr << (*other->targets)[i]->object.toString() << " score: " << (*other->targets)[i]->numTrials << "\n";
-	}
-	cerr << "\n\n";
 }

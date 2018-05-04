@@ -1,16 +1,18 @@
 
 #include "CMABStrategy2.h"
 
-CMABStrategy2::CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, MAB<MoveComponents> *rootMAB, 
-							 MAB<Coordinate> *coordinateMAB, float greediness, float alpha) {
+CMABStrategy2::CMABStrategy2(Evaluator *evaluator, MAB<MoveComponents> *moveMAB, 
+							 MAB<Coordinate> *coordinateMAB, float greediness, float alpha, int lowerMovesBound, int upperMovesBound) {
 	this->evaluator = evaluator;
 	this->moveMAB = moveMAB;
-	this->rootMAB = rootMAB;
 	this->coordinateMAB = coordinateMAB;
 	this->greediness = greediness;
 	this->alpha = alpha;
 	this->previousTimeEnd = Tools::get_time();
 	this->stateManager1 = NULL;
+	assert(lowerMoveBound <= upperMoveBound);
+	this->lowerMoveBound = lowerMovesBound;
+	this->upperMoveBound = upperMovesBound;
 }
 
 CMABStrategy2::~CMABStrategy2() {
@@ -62,7 +64,6 @@ Move CMABStrategy2::getMove(Board &board, Player playerID, Player enemyID, int t
 	}
 
 	if (stateManager1 == NULL) {
-		assert(stateManager2 == NULL);
 		stateManager1 = new CMABState2Manager(board, evaluator, coordinateMAB, moveMAB, greediness, playerID, enemyID);
 	}
 	else {
@@ -79,8 +80,9 @@ Move CMABStrategy2::getMove(Board &board, Player playerID, Player enemyID, int t
 		board.copyInto(copiedBoard);
 		float exploration = (float)1 / (1 + alpha * count);
 		MCTree->setGreed(1 - exploration);
-		MCTree->CMABRound(copiedBoard, emptyBoard, playerID, enemyID, rootMAB);
+		MCTree->CMABRound(copiedBoard, emptyBoard, playerID, enemyID);
 		count++;
+		if (MCTree->getMovesExplored() > upperMoveBound) MCTree->prune(lowerMoveBound);
 	}
 
 	float score;
@@ -90,6 +92,7 @@ Move CMABStrategy2::getMove(Board &board, Player playerID, Player enemyID, int t
 	long currentTime = Tools::get_time();
 	long timeUsed = currentTime - startTime;
 	previousTimeEnd = currentTime;
+
 	//cerr << "CMAB2 round: " << round << " time to use: " << timeToUse << " time used: " << timeUsed << " time passed since last round: " <<
 	//	timePassed << " counter: " << count << " moves explored: " << movesExplored << " move score: " << score << "\n";
 
@@ -103,7 +106,7 @@ void CMABStrategy2::cleanUp() {
 
 string CMABStrategy2::toString() {
 	ostringstream stringStream;
-	stringStream << "CMABStrategy2(" << evaluator->toString() << ", " << moveMAB->toString() << ", " << rootMAB->toString() << ", " <<
-		coordinateMAB->toString() << ", " << greediness << ", " << alpha << ")";
+	stringStream << "CMABStrategy2(" << evaluator->toString() << ", " << moveMAB->toString() << ", " <<
+		coordinateMAB->toString() << ", " << greediness << ", " << alpha << ", " << lowerMoveBound << ", " << upperMoveBound <<  ")";
 	return stringStream.str();
 }
