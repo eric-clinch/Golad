@@ -93,8 +93,8 @@ Move CMABStrategy::getMove(Board &board, Player playerID, Player enemyID, int ti
 	long timeUsed = currentTime - startTime;
 	previousTimeEnd = currentTime;
 
-	//cerr << "CMAB round: " << round << " time to use: " << timeToUse << " time used: " << timeUsed << " time passed since last round: " <<
-	//	timePassed << " counter: " << count << " moves explored: " << movesExplored << " move score: " << score << "\n";
+	cerr << "CMAB round: " << round << " time to use: " << timeToUse << " time used: " << timeUsed << " time passed since last round: " <<
+		timePassed << " counter: " << count << " moves explored: " << movesExplored << " move score: " << score << "\n";
 
 	return result;
 }

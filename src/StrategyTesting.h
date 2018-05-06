@@ -12,7 +12,6 @@
 #include "UCBHybrid.h"
 #include "EpsilonGreedy.h"
 #include "Evaluator.h"
-#include "RatioEvaluator.h"
 
 namespace StrategyTesting {
 	int playMatch(Bot bot0, Bot bot1, bool verbose = false);

@@ -20,21 +20,12 @@
 #include "Parser.h"
 #include "Bot.h"
 #include "Strategy.h"
-#include "RandomStrategy.h"
 #include "CMABStrategy.h"
-#include "CMABStrategy2.h"
-#include "CMABStrategyParallel.h"
 #include "MoveComponents.h"
 #include "Evaluator.h"
-#include "RatioEvaluator.h"
-#include "AdversarialEvaluator.h"
-#include "RoundEvaluator.h"
-#include "ControlEvaluator.h"
-#include "DistanceEvaluator.h"
 #include "DistanceEvaluator.h"
 #include "MAB.h"
 #include "EpsilonGreedy.h"
-#include "UCB1.h"
 #include "UCBHybrid.h"
 #include "Board.h"
 #include "Coordinate.h"
@@ -49,41 +40,31 @@ void test() {
 }
 
 void play() {
-	Evaluator *evaluator = new ControlEvaluator(0.5);
-	MAB<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
-	MAB<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy strategy(evaluator, moveMAB0, coordinateMAB0, 0.5, 0.000175905, 64, 128);
+	Evaluator *evaluator = new DistanceEvaluator(0.5, 1.0);
+	MAB<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.8);
+	MAB<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.6);
+	CMABStrategy strategy(evaluator, moveMAB0, coordinateMAB0, 0.5, 0.000251328, 64, 128);
 	Bot myBot = Bot(&strategy);
 	Parser parser = Parser(myBot);
 	parser.Parse();
 }
 
 void playTest() {
-	Evaluator *evaluator0 = new RoundEvaluator();
-	UCBHybrid<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
-	EpsilonGreedy<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy bot0Strategy(evaluator0, moveMAB0, coordinateMAB0, 0.5, 0.000175905, 64, 128);
-
-	//UCBHybrid<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.9);
-	//EpsilonGreedy<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.4);
-	//UCB1<MoveComponents> *secondaryMoveMAB0 = new UCB1<MoveComponents>(2);
-	//CMABStrategyParallel bot0Strategy(evaluator0, moveMAB0, coordinateMAB0, secondaryMoveMAB0, 0.5, 0.000175905, .5, 5);
+	Evaluator *evaluator0 = new DistanceEvaluator(0.5, 3.0);
+	UCBHybrid<MoveComponents> *moveMAB0 = new UCBHybrid<MoveComponents>(4.5, 0.8);
+	EpsilonGreedy<Coordinate> *coordinateMAB0 = new EpsilonGreedy<Coordinate>(0.6);
+	CMABStrategy bot0Strategy(evaluator0, moveMAB0, coordinateMAB0, 0.5, 0.000251328, 64, 128);
 
 	Bot bot0 = Bot(&bot0Strategy);
 	
 	Evaluator *evaluator1 = new DistanceEvaluator(0.5, 1.0);
-	UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(4, 0.9);
-	EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.4);
-	CMABStrategy2 bot1Strategy(evaluator1, moveMAB1, coordinateMAB1, 0.5, 0.000175905, 64, 128);
-
-	//UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(2, 0.9);
-	//EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.5);
-	//UCBHybrid<MoveComponents> *secondaryMoveMAB1 = new UCBHybrid<MoveComponents>(3.5, 0.8);
-	//CMABStrategyParallel bot1Strategy(evaluator1, moveMAB1, coordinateMAB1, secondaryMoveMAB1, 0.75, 0.000368, 0.8, 5);
+	UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(4.5, 0.8);
+	EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.6);
+	CMABStrategy bot1Strategy(evaluator1, moveMAB1, coordinateMAB1, 0.5, 0.000251328, 64, 128);
 
 	Bot bot1 = Bot(&bot1Strategy);
 
-	StrategyTesting::playTournament(bot0, bot1, 100);
+	StrategyTesting::playTournament(bot0, bot1, 1000);
 	//StrategyTesting::playMatch(bot0, bot1, false);
 }
 
@@ -95,9 +76,9 @@ int main() {
 
 	//playTest();
 	//test();
-	//play();
+	play();
 
-	ParameterOptimization::optimizeParameters(100000);
+	//ParameterOptimization::optimizeParameters(100000);
 
 	delete Board::simulationLookupTable;
 	_CrtDumpMemoryLeaks();

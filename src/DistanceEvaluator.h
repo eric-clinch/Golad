@@ -1,6 +1,6 @@
 
-#ifndef DISTANCEEVALUATOR2_h
-#define DISTANCEEVALUATOR2_h
+#ifndef DistanceEvaluator_h
+#define DistanceEvaluator_h
 
 #include <math.h>
 #include "Evaluator.h"
@@ -13,22 +13,27 @@ private:
 	float multiplier;
 	float distanceDivisor;
 	char controlBoard[cols][rows];
-	Coordinate queue[cols * rows];
+	float distances[cols][rows];
+	Coordinate playerQueue[cols * rows];
+	Coordinate enemyQueue[cols * rows];
 
-	int processCoordinate(int x, int y, int i, Player playerID) {
+	bool processCoordinate(int x, int y, Player playerID) {
 		if (x >= 0 && x < cols && y >= 0 && y < rows && controlBoard[x][y] == Board::EMPTY) {
 			controlBoard[x][y] = playerID;
-			queue[i] = Coordinate(x, y);
 			return 1;
 		}
 		return 0;
 	}
 
-	float getDistanceWeight(float x, float y) {
+	void setDistanceWeight(int x, int y) {
 		float xDistSquared = pow(((float)cols / 2) - x, 2);
 		float yDistSquared = pow(((float)rows / 2) - y, 2);
 		float dist = sqrt(xDistSquared + yDistSquared);
-		return (maxDist - dist) / maxDist;
+		distances[x][y] = (maxDist - dist) / maxDist;
+	}
+
+	inline float getDistanceWeight(int x, int y) {
+		return distances[x][y];
 	}
 
 public:
@@ -37,6 +42,11 @@ public:
 		this->multiplier = multiplier;
 		this->maxDist = sqrt((float)(rows*rows) / distanceDivisor + (float)(cols*cols) / distanceDivisor);
 		this->distanceDivisor = distanceDivisor;
+		for (int x = 0; x < cols; x++) {
+			for (int y = 0; y < rows; y++) {
+				setDistanceWeight(x, y);
+			}
+		}
 	}
 
 	~DistanceEvaluator() {
@@ -60,17 +70,17 @@ public:
 		for (int i = 0; i < enemyCells.size(); i++) {
 			Coordinate c = enemyCells[i];
 			controlBoard[c.x][c.y] = enemyID;
-			queue[enemyQueueEnd] = c;
+			enemyQueue[enemyQueueEnd] = c;
 			enemyQueueEnd++;
 			enemyScore += getDistanceWeight(c.x, c.y);
 		}
 
-		int playerQueueStart = enemyQueueEnd;
-		int playerQueueEnd = playerQueueStart;
+		int playerQueueStart = 0;
+		int playerQueueEnd = 0;
 		for (int i = 0; i < playerCells.size(); i++) {
 			Coordinate c = playerCells[i];
 			controlBoard[c.x][c.y] = playerID;
-			queue[playerQueueEnd] = c;
+			playerQueue[playerQueueEnd] = c;
 			playerQueueEnd++;
 			playerScore += getDistanceWeight(c.x, c.y);
 		}
@@ -78,58 +88,79 @@ public:
 		float weight = 1.0;
 
 		while (playerQueueEnd != playerQueueStart || enemyQueueEnd != enemyQueueStart) {
-			//playerScore += (float)weight * currentPlayerScore;
-			//enemyScore += (float)weight * currentEnemyScore;
 			weight *= multiplier;
 
-			assert(playerQueueEnd >= playerQueueStart && playerQueueStart == enemyQueueEnd && enemyQueueEnd >= enemyQueueStart);
-			enemyQueueEnd = playerQueueEnd;
-			for (; enemyQueueStart < playerQueueStart; enemyQueueStart++) {
-				Coordinate c = queue[enemyQueueStart];
+			assert(playerQueueEnd >= playerQueueStart && enemyQueueEnd >= enemyQueueStart);
+			int oldEnemyQueueEnd = enemyQueueEnd;
+			for (; enemyQueueStart < oldEnemyQueueEnd; enemyQueueStart++) {
+				Coordinate c = enemyQueue[enemyQueueStart];
 				unsigned char x = c.x;
 				unsigned char y = c.y;
 
-				int processResult = processCoordinate(x - 1, y, enemyQueueEnd, enemyID);
-				enemyQueueEnd += processResult;
-				if (processResult) enemyScore += (float)weight * processResult * getDistanceWeight(x - 1, y);
+				bool processResult = processCoordinate(x - 1, y, enemyID);
+				if (processResult) {
+					enemyQueue[enemyQueueEnd] = Coordinate(x - 1, y);
+					enemyQueueEnd++;
+					enemyScore += (float)weight * getDistanceWeight(x - 1, y);
+				}
 
-				processResult = processCoordinate(x + 1, y, enemyQueueEnd, enemyID);
-				enemyQueueEnd += processResult;
-				if (processResult) enemyScore += (float)weight * processResult * getDistanceWeight(x + 1, y);
+				processResult = processCoordinate(x + 1, y, enemyID);
+				if (processResult) {
+					enemyQueue[enemyQueueEnd] = Coordinate(x + 1, y);
+					enemyQueueEnd++;
+					enemyScore += (float)weight * getDistanceWeight(x + 1, y);
+				}
 
-				processResult = processCoordinate(x, y - 1, enemyQueueEnd, enemyID);
-				enemyQueueEnd += processResult;
-				if (processResult) enemyScore += (float)weight * processResult * getDistanceWeight(x, y - 1);
+				processResult = processCoordinate(x, y - 1, enemyID);
+				if (processResult) {
+					enemyQueue[enemyQueueEnd] = Coordinate(x, y - 1);
+					enemyQueueEnd++;
+					enemyScore += (float)weight * getDistanceWeight(x, y - 1);
+				}
 
-				processResult = processCoordinate(x, y + 1, enemyQueueEnd, enemyID);
-				enemyQueueEnd += processResult;
-				if (processResult) enemyScore += (float)weight * processResult * getDistanceWeight(x, y + 1);
+				processResult = processCoordinate(x, y + 1, enemyID);
+				if (processResult) {
+					enemyQueue[enemyQueueEnd] = Coordinate(x, y + 1);
+					enemyQueueEnd++;
+					enemyScore += (float)weight * getDistanceWeight(x, y + 1);
+				}
 			}
-			enemyQueueStart = playerQueueEnd;
 
-			assert(playerQueueEnd >= playerQueueStart && enemyQueueStart == playerQueueEnd && enemyQueueEnd >= enemyQueueStart);
-			playerQueueEnd = enemyQueueEnd;
-			for (; playerQueueStart < enemyQueueStart; playerQueueStart++) {
-				Coordinate c = queue[playerQueueStart];
+			assert(playerQueueEnd >= playerQueueStart && enemyQueueEnd >= enemyQueueStart);
+			int oldPlayerQueueEnd = playerQueueEnd;
+			for (; playerQueueStart < oldPlayerQueueEnd; playerQueueStart++) {
+				Coordinate c = playerQueue[playerQueueStart];
 				unsigned char x = c.x;
 				unsigned char y = c.y;
-				int processResult = processCoordinate(x - 1, y, playerQueueEnd, playerID);
-				playerQueueEnd += processResult;
-				if (processResult) playerScore += (float)weight * processResult * getDistanceWeight(x - 1, y);
 
-				processResult = processCoordinate(x + 1, y, playerQueueEnd, playerID);
-				playerQueueEnd += processResult;
-				if (processResult) playerScore += (float)weight * processResult * getDistanceWeight(x + 1, y);
+				bool processResult = processCoordinate(x - 1, y, playerID);
+				if (processResult) {
+					playerQueue[playerQueueEnd] = Coordinate(x - 1, y);
+					playerQueueEnd++;
+					playerScore += (float)weight * getDistanceWeight(x - 1, y);
+				}
 
-				processResult = processCoordinate(x, y - 1, playerQueueEnd, playerID);
-				playerQueueEnd += processResult;
-				if (processResult) playerScore += (float)weight * processResult * getDistanceWeight(x, y - 1);
+				processResult = processCoordinate(x + 1, y, playerID);
+				if (processResult) {
+					playerQueue[playerQueueEnd] = Coordinate(x + 1, y);
+					playerQueueEnd++;
+					playerScore += (float)weight * getDistanceWeight(x + 1, y);
+				}
 
-				processResult = processCoordinate(x, y + 1, playerQueueEnd, playerID);
-				playerQueueEnd += processResult;
-				if (processResult) playerScore += (float)weight * processResult * getDistanceWeight(x, y + 1);
+				processResult = processCoordinate(x, y - 1, playerID);
+				if (processResult) {
+					playerQueue[playerQueueEnd] = Coordinate(x, y - 1);
+					playerQueueEnd++;
+					playerScore += (float)weight * getDistanceWeight(x, y - 1);
+				}
+
+				processResult = processCoordinate(x, y + 1, playerID);
+				if (processResult) {
+					playerQueue[playerQueueEnd] = Coordinate(x, y + 1);
+					playerQueueEnd++;
+					playerScore += (float)weight * getDistanceWeight(x, y + 1);
+				}
 			}
-			playerQueueStart = enemyQueueEnd;
 		}
 
 		float result = (float)playerScore / (playerScore + enemyScore);
@@ -138,7 +169,7 @@ public:
 
 	string toString() {
 		ostringstream stringStream;
-		stringStream << "ControlEvalator(" << multiplier << ", " << distanceDivisor << ")";
+		stringStream << "DistanceEvaluator(" << multiplier << ", " << distanceDivisor << ")";
 		return stringStream.str();
 	}
 };

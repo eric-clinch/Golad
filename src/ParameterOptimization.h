@@ -11,10 +11,8 @@
 #include "MoveComponents.h"
 #include "StrategyTesting.h"
 #include "CMABStrategy.h"
-#include "CMABStrategy2.h"
 #include "Evaluator.h"
-#include "RatioEvaluator.h"
-#include "RoundEvaluator.h"
+#include "DistanceEvaluator.h"
 
 namespace ParameterOptimization {
 	void optimizeParameters(int rounds);
@@ -79,7 +77,7 @@ struct CMABParameters {
 	}
 
 	Strategy *getStrategy() {
-		Evaluator *evaluator = new ControlEvaluator(0.5);
+		Evaluator *evaluator = new DistanceEvaluator(0.5, 3.0);
 		Strategy *strategy = new CMABStrategy(evaluator, moveMAB->object, coordinateMAB->object,
 											  greed->object, alpha->object, lowerMoveBound->object, upperMoveBound->object);
 		return strategy;
@@ -172,13 +170,6 @@ void printBotInfo(UtilityNode<Bot> &botNode) {
 		botNode.numTrials << " win rate: " << botNode.getAverageUtility() << "\n";
 }
 
-void printBotInfo(UtilityNode<Bot*> *botNode) {
-	cerr << botNode->object->getStrategy()->toString() << " trials: " <<
-		botNode->numTrials << " win rate: " << botNode->getAverageUtility() << "\n";
-	cout << botNode->object->getStrategy()->toString() << " trials: " <<
-		botNode->numTrials << " win rate: " << botNode->getAverageUtility() << "\n";
-}
-
 struct Bots {
 	Bot bot0;
 	Bot bot1;
@@ -222,10 +213,10 @@ void evaluateParameters(UtilityNode<CMABParameters> *parametersNode0, UtilityNod
 	parametersNode1->updateUtility(roundResult);
 	parameters1.updateUtilities(roundResult);
 
-	cerr << "round result: " << roundResult;
-	int *roundResultPointer = &roundResult;
+	int *roundResultPointer = new int();
 	pthread_join(thread, (void**)&roundResultPointer);
-	cerr << " new round result: " << roundResult << "\n";
+	roundResult = *roundResultPointer;
+	delete roundResultPointer;
 	if (roundResult == -1) roundResult = 0.5;
 	parametersNode0->updateUtility(roundResult);
 	parameters0.updateUtilities(roundResult);
@@ -328,12 +319,12 @@ double approximateAlpha(int rounds, int desiredExplored, int accuracy = 50) {
 
 void ParameterOptimization::optimizeParameters(int rounds) {
 
-	freopen("C:/Users/ericc/Desktop/golad/CMABParameters.txt", "w", stderr);
+	freopen("MABResults.txt", "w", stderr);
 
 	// CMAB Solver setup
 	vector<UtilityNode<MAB<MoveComponents>*>*> moveMABs;
-	for (float confidence = 1.5; confidence < 5.6; confidence += 0.5) {
-		for (float epsilon = 0.4; epsilon < 1; epsilon += 0.1) {
+	for (float confidence = 3.5; confidence < 6.1; confidence += 0.5) {
+		for (float epsilon = 0.75; epsilon < 1; epsilon += 0.05) {
 			MAB<MoveComponents> *moveMAB = new UCBHybrid<MoveComponents>(confidence, epsilon);
 			UtilityNode<MAB<MoveComponents>*> *moveMABNode = new UtilityNode<MAB<MoveComponents>*>(moveMAB);
 			moveMABs.push_back(moveMABNode);
@@ -341,21 +332,21 @@ void ParameterOptimization::optimizeParameters(int rounds) {
 	}
 
 	vector<UtilityNode<MAB<Coordinate>*>*> coordinateMABs;
-	for (float epsilon = 0.3; epsilon < 0.61; epsilon += 0.1) {
+	for (float epsilon = 0.55; epsilon < 0.81; epsilon += 0.05) {
 		MAB<Coordinate> *coordinateMAB = new EpsilonGreedy<Coordinate>(epsilon);
 		UtilityNode<MAB<Coordinate>*> *coordinateMABNode = new UtilityNode<MAB<Coordinate>*>(coordinateMAB);
 		coordinateMABs.push_back(coordinateMABNode);
 	}
 
 	vector<UtilityNode<float>*> greeds;
-	for (float greed = 0.3; greed <= 0.7;  greed += 0.05) {
+	for (float greed = 0.45; greed < 0.61;  greed += 0.05) {
 		UtilityNode<float> *greedNode = new UtilityNode<float>(greed);
 		greeds.push_back(greedNode);
 	}
 
 	vector<UtilityNode<float>*> alphas;
 	int expectedRounds = 10000;
-	for (int desiredExplored = 1000; desiredExplored < 7000; desiredExplored += 500) {
+	for (int desiredExplored = 4000; desiredExplored < 7000; desiredExplored += 500) {
 		float alpha = approximateAlpha(expectedRounds, desiredExplored);
 		UtilityNode<float> *alphaNode = new UtilityNode<float>(alpha);
 		alphas.push_back(alphaNode);
@@ -379,36 +370,22 @@ void ParameterOptimization::optimizeParameters(int rounds) {
 	random_device rd;
 	generator.seed(rd());
 
-	vector<UtilityNode<Bot>> bots;
-	for (float multiplier = 0.25; multiplier <= 0.76; multiplier += 0.05) {
-		for (float distanceDivisor = 1.0; distanceDivisor <= 4.1; distanceDivisor += 0.5) {
-			Evaluator *evaluator1 = new DistanceEvaluator(multiplier, distanceDivisor);
-			UCBHybrid<MoveComponents> *moveMAB1 = new UCBHybrid<MoveComponents>(4, 0.9);
-			EpsilonGreedy<Coordinate> *coordinateMAB1 = new EpsilonGreedy<Coordinate>(0.4);
-			CMABStrategy *botStrategy = new CMABStrategy(evaluator1, moveMAB1, coordinateMAB1, 0.5, 0.000175905, 64, 128);
-			Bot bot = Bot(botStrategy);
-			UtilityNode<Bot> botNode = UtilityNode<Bot>(bot);
-			bots.push_back(botNode);
+	 //round += 2 because each CMABRound does 2 trials
+	for (int round = 0; round < rounds; round += 2) {
+		float exploration = getExploration(round);
+		CMABRound(possibleParameters, testedParameters, generator, exploration, round + 1); // for CMABRound, the round number should be 1-based indexed
+		
+		if (round % 20 == 0 && round > 0) {
+			cerr << "round: " << round << " exploration: " << exploration << " strategies tested: " << testedParameters.size() << "\n";
+			cout << "round: " << round << " exploration: " << exploration << " strategies tested: " << testedParameters.size() << "\n";
+			sort(testedParameters.begin(), testedParameters.end(), Tools::UtilityNodePointerComparator<CMABParameters>);
+			for (int i = 0; i < 5 && i < testedParameters.size(); i++) {
+				printParameters(*testedParameters[i]);
+			}
+			cerr << "\n";
+			cout << "\n";
 		}
 	}
-	solveMAB(bots, rounds);
-
-	// round += 2 because each CMABRound does 2 trials
-	//for (int round = 0; round < rounds; round += 2) {
-	//	float exploration = getExploration(round);
-	//	CMABRound(possibleParameters, testedParameters, generator, exploration, round + 1); // for CMABRound, the round number should be 1-based indexed
-	//	
-	//	if (round % 20 == 0 && round > 0) {
-	//		cerr << "round: " << round << " exploration: " << exploration << " strategies tested: " << testedParameters.size() << "\n";
-	//		cout << "round: " << round << " exploration: " << exploration << " strategies tested: " << testedParameters.size() << "\n";
-	//		sort(testedParameters.begin(), testedParameters.end(), Tools::UtilityNodePointerComparator<CMABParameters>);
-	//		for (int i = 0; i < 5 && i < testedParameters.size(); i++) {
-	//			printParameters(*testedParameters[i]);
-	//		}
-	//		cerr << "\n";
-	//		cout << "\n";
-	//	}
-	//}
 }
 
 #endif

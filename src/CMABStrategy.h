@@ -21,8 +21,6 @@
 #include "CMABStateManager.h"
 #include "MoveComponents.h"
 #include "Tools.h"
-#include "BoardDensity.h"
-#include "RatioEvaluator.h"
 
 class CMABStrategy : public Strategy {
 private:
